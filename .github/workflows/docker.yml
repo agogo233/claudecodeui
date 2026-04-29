@@ -27,16 +27,14 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compute tags
         id: tags
         run: |
-          TAGS="docker.io/cloudcliai/sandbox:${{ matrix.template }}"
-          if [ -n "${{ inputs.extra_tag }}" ]; then
-            TAGS="$TAGS,docker.io/cloudcliai/sandbox:${{ matrix.template }}-${{ inputs.extra_tag }}"
-          fi
+          TAGS="ghcr.io/${{ github.actor }}/${{ github.event.repository.name }}:${{ matrix.template }}"
           echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
@@ -44,8 +42,15 @@ jobs:
         with:
           context: ./docker
           file: ./docker/${{ matrix.template }}/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha,scope=${{ matrix.template }}
           cache-to: type=gha,mode=max,scope=${{ matrix.template }}
+
+      - uses: actions/delete-package-versions@v5
+        with: 
+          package-name: ${{ env.CONTAINER_NAME }}
+          package-type: 'container'
+          min-versions-to-keep: 2
+          delete-only-untagged-versions: 'true'

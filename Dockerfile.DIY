@@ -2,13 +2,11 @@
 FROM node:22 AS builder
 WORKDIR /app
 
-# 先只复制 package 相关文件，利用 Docker 构建缓存
 COPY package.json package-lock.json* ./
 COPY scripts/ ./scripts/
 
 RUN npm ci
 
-# 再复制源码并构建
 COPY . .
 RUN npm run build
 
@@ -17,15 +15,14 @@ RUN npm run build
 FROM node:22-slim
 USER root
 
-# 安装系统依赖 (git, python 等 node-pty 可能需要)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential python3 python3-setuptools git \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 Claude Code CLI（全局安装，root 权限下完成）
+# 安装 Claude Code CLI
 RUN npm install -g @anthropic-ai/claude-code && claude --version
 
-# 从 builder 复制已构建好的产物
+# 从 builder 复制产物
 COPY --from=builder /app/node_modules    /app/node_modules
 COPY --from=builder /app/package.json   /app/package.json
 COPY --from=builder /app/dist           /app/dist
@@ -39,16 +36,17 @@ WORKDIR /app
 # 修复 node-pty 原生绑定
 RUN node scripts/fix-node-pty.js
 
-# ── 关键修复：修复所有权 ──────────────────────────────────
-# 所有 COPY 和 RUN 都在 root 下执行，文件属主是 root。
-# 切到非 root 用户前，必须把 /app 的所有权交给 node 用户，
-# 否则 npx 缓存写入、npm 脚本执行等都会报 EPERM。
+# ── 关键修复 ───────────────────────────────────────────────
+# 1. 修复 node_modules/.bin 下所有 bin 的可执行权限
+#    （COPY 保留了 root 构建时的权限，node 用户无执行权）
+RUN chmod -R +x /app/node_modules/.bin/
+
+# 2. 统一所有权，避免后续任何写入操作的 EPERM
 RUN chown -R node:node /app
 
-# 切换到非 root 用户
 USER node
 
 EXPOSE 3001
 
-# 直接通过 node 执行本地 bin，绕开 npx 缓存（最可靠）
+# node 直接调用，完全绕开 shell 和 PATH
 CMD ["node", "/app/node_modules/.bin/cloudcli", "start", "--port", "3001"]

@@ -1,6 +1,6 @@
 name: "Publish Server Container Image"
 on:
-  #push:
+  push:
   workflow_dispatch: # 添加手动触发
 jobs:
   build-and-push:

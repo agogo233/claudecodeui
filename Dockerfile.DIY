@@ -1,0 +1,34 @@
+# Stage 1: 构建 CloudCLI
+FROM node:22 AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Stage 2: 运行环境
+FROM node:22-slim
+
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential python3 python3-setuptools \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 Claude Code CLI（用户已确认包名）
+RUN npm install -g @anthropic-ai/claude-code && claude --version
+
+# 复制运行时必需的文件
+COPY --from=builder /app/package.json /app/package.json
+COPY --from=builder /app/dist /app/dist
+COPY --from=builder /app/dist-server /app/dist-server
+COPY --from=builder /app/shared /app/shared
+COPY --from=builder /app/public /app/public
+
+WORKDIR /app
+# 只安装 production 依赖，减小镜像体积
+RUN npm install --omit=dev
+
+USER node
+EXPOSE 3001
+CMD ["cloudcli", "start", "--port", "3001"]

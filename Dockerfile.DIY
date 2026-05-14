@@ -7,7 +7,19 @@ COPY scripts/ ./scripts/
 
 RUN npm ci
 
-COPY . .
+# 只复制源码，跳过 host 的 node_modules（防止跨平台覆盖）
+COPY tsconfig.json ./
+COPY server/tsconfig.json ./server/
+COPY server/ ./server/
+COPY src/ ./src/
+COPY shared/ ./shared/
+COPY public/ ./public/
+COPY index.html ./
+COPY vite.config.js ./
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
+COPY eslint.config.js ./
+
 RUN npm run build
 
 
@@ -15,11 +27,12 @@ RUN npm run build
 FROM node:22-slim
 USER root
 
+# 系统依赖（node-pty 需要编译工具）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential python3 python3-setuptools git \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 Claude Code CLI
+# 安装 Claude Code CLI（全局）
 RUN npm install -g @anthropic-ai/claude-code && claude --version
 
 # 从 builder 复制产物
@@ -36,17 +49,13 @@ WORKDIR /app
 # 修复 node-pty 原生绑定
 RUN node scripts/fix-node-pty.js
 
-# ── 关键修复 ───────────────────────────────────────────────
-# 1. 修复 node_modules/.bin 下所有 bin 的可执行权限
-#    （COPY 保留了 root 构建时的权限，node 用户无执行权）
-RUN chmod -R +x /app/node_modules/.bin/
-
-# 2. 统一所有权，避免后续任何写入操作的 EPERM
-RUN chown -R node:node /app
+# 统一权限
+RUN chmod -R +x /app/node_modules/.bin/ && \
+    chown -R node:node /app
 
 USER node
 
 EXPOSE 3001
 
-# node 直接调用，完全绕开 shell 和 PATH
-CMD ["node", "/app/node_modules/.bin/cloudcli", "start", "--port", "3001"]
+# 直接指向编译后的入口文件
+CMD ["node", "/app/dist-server/server/cli.js", "start", "--port", "3001"]

@@ -23,7 +23,8 @@ COPY eslint.config.js ./
 RUN npm run build
 
 # 优化: 移除 devDependencies（现在包含所有前端包）
-RUN npm prune --omit=dev
+RUN npm prune --omit=dev && \
+    rm -rf node_modules/@anthropic-ai/claude-agent-sdk-linux-x64-musl
 
 
 # ── Stage 2: 运行环境 ──────────────────────────────────────

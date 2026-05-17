@@ -13,6 +13,7 @@ const PROVIDER_LABELS = {
   cursor: 'Cursor',
   codex: 'Codex',
   gemini: 'Gemini',
+  opencode: 'OpenCode',
   system: 'System'
 };
 

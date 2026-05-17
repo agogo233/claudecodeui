@@ -97,6 +97,25 @@ export const GEMINI_MODELS = {
 };
 
 /**
+ * OpenCode Models
+ *
+ * Opencode supports multiple underlying LLMs via its provider system.
+ * The actual available models are dynamically reported through ACP
+ * session configOptions. These presets serve as UI defaults.
+ */
+export const OPENCODE_MODELS = {
+  OPTIONS: [
+    { value: "anthropic/claude-sonnet-4", label: "Claude Sonnet 4" },
+    { value: "anthropic/claude-opus-4", label: "Claude Opus 4" },
+    { value: "anthropic/claude-haiku-4", label: "Claude Haiku 4" },
+    { value: "openai/gpt-5", label: "GPT-5" },
+    { value: "gemini/gemini-3-pro", label: "Gemini 3 Pro" },
+  ],
+
+  DEFAULT: "anthropic/claude-sonnet-4",
+};
+
+/**
  * Ordered provider registry. Display order in selection UIs.
  */
 export const PROVIDERS = [
@@ -104,4 +123,5 @@ export const PROVIDERS = [
   { id: "codex", name: "OpenAI", models: CODEX_MODELS },
   { id: "gemini", name: "Google", models: GEMINI_MODELS },
   { id: "cursor", name: "Cursor", models: CURSOR_MODELS },
+  { id: "opencode", name: "OpenCode", models: OPENCODE_MODELS },
 ];

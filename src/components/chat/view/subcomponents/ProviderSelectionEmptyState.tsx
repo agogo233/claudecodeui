@@ -9,6 +9,7 @@ import {
   CURSOR_MODELS,
   CODEX_MODELS,
   GEMINI_MODELS,
+  OPENCODE_MODELS,
   PROVIDERS,
 } from "../../../../../shared/modelConstants";
 import type { ProjectSession, LLMProvider } from "../../../../types/app";
@@ -44,6 +45,8 @@ type ProviderSelectionEmptyStateProps = {
   setCodexModel: (model: string) => void;
   geminiModel: string;
   setGeminiModel: (model: string) => void;
+  opencodeModel: string;
+  setOpencodeModel: (model: string) => void;
   tasksEnabled: boolean;
   isTaskMasterInstalled: boolean | null;
   onShowAllTasks?: (() => void) | null;
@@ -66,6 +69,7 @@ function getModelConfig(p: LLMProvider) {
   if (p === "claude") return CLAUDE_MODELS;
   if (p === "codex") return CODEX_MODELS;
   if (p === "gemini") return GEMINI_MODELS;
+  if (p === "opencode") return OPENCODE_MODELS;
   return CURSOR_MODELS;
 }
 
@@ -75,10 +79,12 @@ function getCurrentModel(
   cu: string,
   co: string,
   g: string,
+  o: string,
 ) {
   if (p === "claude") return c;
   if (p === "codex") return co;
   if (p === "gemini") return g;
+  if (p === "opencode") return o;
   return cu;
 }
 
@@ -86,7 +92,9 @@ function getProviderDisplayName(p: LLMProvider) {
   if (p === "claude") return "Claude";
   if (p === "cursor") return "Cursor";
   if (p === "codex") return "Codex";
-  return "Gemini";
+  if (p === "gemini") return "Gemini";
+  if (p === "opencode") return "OpenCode";
+  return "Claude";
 }
 
 export default function ProviderSelectionEmptyState({
@@ -103,6 +111,8 @@ export default function ProviderSelectionEmptyState({
   setCodexModel,
   geminiModel,
   setGeminiModel,
+  opencodeModel,
+  setOpencodeModel,
   tasksEnabled,
   isTaskMasterInstalled,
   onShowAllTasks,
@@ -134,6 +144,7 @@ export default function ProviderSelectionEmptyState({
     cursorModel,
     codexModel,
     geminiModel,
+    opencodeModel,
   );
 
   const currentModelLabel = useMemo(() => {
@@ -155,12 +166,15 @@ export default function ProviderSelectionEmptyState({
       } else if (providerId === "gemini") {
         setGeminiModel(modelValue);
         localStorage.setItem("gemini-model", modelValue);
+      } else if (providerId === "opencode") {
+        setOpencodeModel(modelValue);
+        localStorage.setItem("opencode-model", modelValue);
       } else {
         setCursorModel(modelValue);
         localStorage.setItem("cursor-model", modelValue);
       }
     },
-    [setClaudeModel, setCursorModel, setCodexModel, setGeminiModel],
+    [setClaudeModel, setCursorModel, setCodexModel, setGeminiModel, setOpencodeModel],
   );
 
   const handleModelSelect = useCallback(
@@ -286,6 +300,9 @@ export default function ProviderSelectionEmptyState({
                 }),
                 gemini: t("providerSelection.readyPrompt.gemini", {
                   model: geminiModel,
+                }),
+                opencode: t("providerSelection.readyPrompt.opencode", {
+                  model: opencodeModel,
                 }),
               }[provider]
             }

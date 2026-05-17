@@ -5,7 +5,8 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY scripts/ ./scripts/
 
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 COPY tsconfig.json ./
 COPY server/tsconfig.json ./server/
@@ -21,47 +22,42 @@ COPY eslint.config.js ./
 
 RUN npm run build
 
+# 优化: 移除 devDependencies（现在包含所有前端包）
+RUN npm prune --omit=dev
+
 
 # ── Stage 2: 运行环境 ──────────────────────────────────────
 FROM node:22-slim
 USER root
 
-# 系统依赖（Python + 编译工具链，满足 pip install --user 的常见需求）
+# 仅安装运行时必需的系统包
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    python3 python3-pip python3-venv python3-dev python3-setuptools \
-    git curl ca-certificates \
-    gcc g++ make libffi-dev libssl-dev \
+    python3 python3-pip python3-venv \
+    git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# 创建 node 用户的可写目录（pip --user 和 npm 用户级全局）
+# 创建 node 用户的可写目录
 RUN mkdir -p /home/node/.local /home/node/.npm-global && \
     chown -R node:node /home/node/.local /home/node/.npm-global && \
     npm config set prefix /home/node/.npm-global -g
 
-ENV PATH="/home/node/.local/bin:/home/node/.npm-global/bin:${PATH}"
+ENV PYTHONUSERBASE=/home/node/.local \
+    PIP_USER=true \
+    PIP_BREAK_SYSTEM_PACKAGES=1 \
+    PATH="/home/node/.local/bin:/home/node/.npm-global/bin:${PATH}"
 
-# 安装 Claude Code CLI（全局，但已配置 prefix 到用户级目录）
-RUN npm install -g @anthropic-ai/claude-code && claude --version
+# 安装 Claude Code CLI（以 root 安装，随后归还目录权限给 node 用户）
+RUN npm install -g @anthropic-ai/claude-code && claude --version && \
+    chown -R node:node /home/node/.npm-global
 
-# 从 builder 复制产物
+# 从 builder 复制产物（只复制运行时需要的）
 COPY --from=builder /app/node_modules    /app/node_modules
 COPY --from=builder /app/package.json   /app/package.json
 COPY --from=builder /app/dist           /app/dist
 COPY --from=builder /app/dist-server    /app/dist-server
-COPY --from=builder /app/shared         /app/shared
-COPY --from=builder /app/public         /app/public
-COPY --from=builder /app/scripts        /app/scripts
 
 WORKDIR /app
-
-# 修复 node-pty 原生绑定
-RUN node scripts/fix-node-pty.js
-
-# 统一权限（含 .local 和 .npm-global 已在前面处理，这里只修 /app）
-RUN chmod -R +x /app/node_modules/.bin/ && \
-    chown -R node:node /app
-
+RUN chown -R node:node /app
 USER node
 
 EXPOSE 3001

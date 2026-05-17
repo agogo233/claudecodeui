@@ -56,14 +56,14 @@ export class OpenCodeSessionSynchronizer implements IProviderSessionSynchronizer
 
         for (const row of rows) {
           try {
-            const { createSession } = await import('@/modules/database/index.js');
-            createSession(
+            const { sessionsDb } = await import('@/modules/database/index.js');
+            sessionsDb.createSession(
               row.session_id,
               this.provider,
               process.cwd(),
               'New OpenCode Session',
-              row.created_at ? new Date(row.created_at) : undefined,
-              row.updated_at ? new Date(row.updated_at) : undefined,
+              row.created_at || undefined,
+              row.updated_at || undefined,
               dbPath,
             );
             processed += 1;
@@ -107,14 +107,14 @@ export class OpenCodeSessionSynchronizer implements IProviderSessionSynchronizer
 
       if (!row) return null;
 
-      const { createSession } = await import('@/modules/database/index.js');
-      return createSession(
+      const { sessionsDb } = await import('@/modules/database/index.js');
+      return sessionsDb.createSession(
         row.session_id,
         this.provider,
         process.cwd(),
         'New OpenCode Session',
-        row.created_at ? new Date(row.created_at) : undefined,
-        row.updated_at ? new Date(row.updated_at) : undefined,
+        row.created_at || undefined,
+        row.updated_at || undefined,
         filePath,
       );
     } catch {

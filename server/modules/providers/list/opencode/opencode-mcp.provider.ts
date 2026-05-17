@@ -46,7 +46,8 @@ export class OpenCodeMcpProvider extends McpProvider {
 
     for (const filePath of candidates) {
       const config = await readOpencodeConfig(filePath);
-      const mcpServers = readObjectRecord(config.mcp?.servers || config.mcpServers);
+      const mcpSection = readObjectRecord(config.mcp);
+      const mcpServers = readObjectRecord(mcpSection?.servers || config.mcpServers);
       if (mcpServers && Object.keys(mcpServers).length > 0) {
         return mcpServers as Record<string, unknown>;
       }

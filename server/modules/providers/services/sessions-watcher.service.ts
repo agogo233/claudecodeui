@@ -11,6 +11,11 @@ import { getProjectsWithSessions } from '@/modules/projects/index.js';
 
 type WatcherEventType = 'add' | 'change';
 
+function opencodeDataDir(): string {
+  const xdgData = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
+  return path.join(xdgData, 'opencode');
+}
+
 const PROVIDER_WATCH_PATHS: Array<{ provider: LLMProvider; rootPath: string }> = [
   {
     provider: 'claude',
@@ -33,6 +38,10 @@ const PROVIDER_WATCH_PATHS: Array<{ provider: LLMProvider; rootPath: string }> =
   {
     provider: 'gemini',
     rootPath: path.join(os.homedir(), '.gemini', 'tmp'),
+  },
+  {
+    provider: 'opencode',
+    rootPath: opencodeDataDir(),
   },
 ];
 
@@ -69,6 +78,10 @@ let watcherRescheduleAfterRefresh = false;
 function isWatcherTargetFile(provider: LLMProvider, filePath: string): boolean {
   if (provider === 'gemini') {
     return filePath.endsWith('.json') || filePath.endsWith('.jsonl');
+  }
+
+  if (provider === 'opencode') {
+    return /^opencode(-[a-zA-Z0-9]+)?\.db$/.test(path.basename(filePath));
   }
 
   return filePath.endsWith('.jsonl');

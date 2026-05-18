@@ -4,29 +4,27 @@ import { readdir } from 'node:fs/promises';
 
 import type { IProviderSessionSynchronizer } from '@/shared/interfaces.js';
 
-function stripAnsiCodes(str: string): string {
-  return str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
-}
-
-function extractSessionName(content: string): string | undefined {
-  const firstLine = content.split('\n').find(l => l.trim());
-  if (!firstLine) return undefined;
-  const cleaned = stripAnsiCodes(firstLine.trim()).slice(0, 80);
-  return cleaned || undefined;
+function msToIso(ms: number | null | undefined): string | undefined {
+  return ms ? new Date(ms).toISOString() : undefined;
 }
 
 export class OpenCodeSessionSynchronizer implements IProviderSessionSynchronizer {
   private readonly provider = 'opencode' as const;
 
+  private opencodeDataDir(): string {
+    const xdgData = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
+    return path.join(xdgData, 'opencode');
+  }
+
   async synchronize(since?: Date): Promise<number> {
-    const opencodeConfigDir = path.join(os.homedir(), '.config', 'opencode');
+    const dataDir = this.opencodeDataDir();
     let dbFiles: string[] = [];
 
     try {
-      const entries = await readdir(opencodeConfigDir, { withFileTypes: true });
+      const entries = await readdir(dataDir, { withFileTypes: true });
       dbFiles = entries
-        .filter(e => e.isFile() && e.name.endsWith('.db'))
-        .map(e => path.join(opencodeConfigDir, e.name));
+        .filter(e => e.isFile() && /^opencode(-[a-zA-Z0-9]+)?\.db$/.test(e.name))
+        .map(e => path.join(dataDir, e.name));
     } catch {
       return 0;
     }
@@ -41,29 +39,29 @@ export class OpenCodeSessionSynchronizer implements IProviderSessionSynchronizer
         const betterSqlite3 = await import('better-sqlite3');
         const db = betterSqlite3.default(dbPath, { readonly: true, fileMustExist: true });
 
-        const hasSessionsTable = db.prepare(
-          `SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'`
+        const hasSessionTable = db.prepare(
+          `SELECT name FROM sqlite_master WHERE type='table' AND name='session'`
         ).get();
 
-        if (!hasSessionsTable) {
+        if (!hasSessionTable) {
           db.close();
           continue;
         }
 
         const rows = db.prepare(
-          `SELECT session_id, created_at, updated_at FROM sessions ORDER BY created_at DESC`
-        ).all() as Array<{ session_id: string; created_at: string; updated_at: string }>;
+          `SELECT id, directory, title, time_created, time_updated FROM session ORDER BY time_created DESC`
+        ).all() as Array<{ id: string; directory: string; title: string; time_created: number | null; time_updated: number | null }>;
 
         for (const row of rows) {
           try {
             const { sessionsDb } = await import('@/modules/database/index.js');
             sessionsDb.createSession(
-              row.session_id,
+              row.id,
               this.provider,
-              process.cwd(),
-              'New OpenCode Session',
-              row.created_at || undefined,
-              row.updated_at || undefined,
+              row.directory,
+              row.title || 'New OpenCode Session',
+              msToIso(row.time_created),
+              msToIso(row.time_updated),
               dbPath,
             );
             processed += 1;
@@ -82,7 +80,7 @@ export class OpenCodeSessionSynchronizer implements IProviderSessionSynchronizer
   }
 
   async synchronizeFile(filePath: string): Promise<string | null> {
-    if (!filePath.endsWith('.db')) {
+    if (!/^opencode(-[a-zA-Z0-9]+)?\.db$/.test(path.basename(filePath))) {
       return null;
     }
 
@@ -90,33 +88,43 @@ export class OpenCodeSessionSynchronizer implements IProviderSessionSynchronizer
       const betterSqlite3 = await import('better-sqlite3');
       const db = betterSqlite3.default(filePath, { readonly: true, fileMustExist: true });
 
-      const hasSessionsTable = db.prepare(
-        `SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'`
+      const hasSessionTable = db.prepare(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name='session'`
       ).get();
 
-      if (!hasSessionsTable) {
+      if (!hasSessionTable) {
         db.close();
         return null;
       }
 
-      const row = db.prepare(
-        `SELECT session_id, created_at, updated_at FROM sessions ORDER BY updated_at DESC LIMIT 1`
-      ).get() as { session_id: string; created_at: string; updated_at: string } | undefined;
+      const rows = db.prepare(
+        `SELECT id, directory, title, time_created, time_updated FROM session ORDER BY time_updated DESC`
+      ).all() as Array<{ id: string; directory: string; title: string; time_created: number | null; time_updated: number | null }>;
 
-      db.close();
-
-      if (!row) return null;
+      if (rows.length === 0) {
+        db.close();
+        return null;
+      }
 
       const { sessionsDb } = await import('@/modules/database/index.js');
-      return sessionsDb.createSession(
-        row.session_id,
-        this.provider,
-        process.cwd(),
-        'New OpenCode Session',
-        row.created_at || undefined,
-        row.updated_at || undefined,
-        filePath,
-      );
+      for (const row of rows) {
+        try {
+          sessionsDb.createSession(
+            row.id,
+            this.provider,
+            row.directory,
+            row.title || 'New OpenCode Session',
+            msToIso(row.time_created),
+            msToIso(row.time_updated),
+            filePath,
+          );
+        } catch {
+          continue;
+        }
+      }
+
+      db.close();
+      return rows[0].id;
     } catch {
       return null;
     }

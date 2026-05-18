@@ -18,7 +18,8 @@
     "claude": "Claude",
     "cursor": "Cursor",
     "codex": "Codex",
-    "gemini": "Gemini"
+    "gemini": "Gemini",
+    "opencode": "OpenCode"
   },
   "tools": {
     "settings": "Настройки инструмента",
@@ -189,6 +190,7 @@
       "cursor": "Готов использовать Cursor с {{model}}. Начните вводить сообщение ниже.",
       "codex": "Готов использовать Codex с {{model}}. Начните вводить сообщение ниже.",
       "gemini": "Готов использовать Gemini с {{model}}. Начните вводить сообщение ниже.",
+      "opencode": "Готов использовать OpenCode с {{model}}. Начните вводить сообщение ниже.",
       "default": "Выберите провайдера выше для начала"
     },
     "pressToSearch": "Нажмите <kbd>{{shortcut}}</kbd>, чтобы искать сессии, файлы и коммиты"

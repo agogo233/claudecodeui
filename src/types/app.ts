@@ -46,6 +46,7 @@ export interface Project {
   cursorSessions?: ProjectSession[];
   codexSessions?: ProjectSession[];
   geminiSessions?: ProjectSession[];
+  opencodeSessions?: ProjectSession[];
   sessionMeta?: ProjectSessionMeta;
   taskmaster?: ProjectTaskmasterInfo;
   [key: string]: unknown;

@@ -240,12 +240,14 @@ export function useFileTreeOperations({
 
   // Copy path to clipboard
   const handleCopyPath = useCallback((item: FileTreeNode) => {
-    navigator.clipboard.writeText(item.path).catch(() => {
-      // Clipboard API may fail in some contexts (e.g., non-HTTPS)
-      showToast(t('fileTree.toast.copyFailed', 'Failed to copy path'), 'error');
-      return;
-    });
-    showToast(t('fileTree.toast.pathCopied', 'Path copied to clipboard'), 'success');
+    navigator.clipboard.writeText(item.path)
+      .then(() => {
+        showToast(t('fileTree.toast.pathCopied', 'Path copied to clipboard'), 'success');
+      })
+      .catch(() => {
+        // Clipboard API may fail in some contexts (e.g., non-HTTPS)
+        showToast(t('fileTree.toast.copyFailed', 'Failed to copy path'), 'error');
+      });
   }, [showToast, t]);
 
   const triggerBrowserDownload = useCallback((blob: Blob, fileName: string) => {

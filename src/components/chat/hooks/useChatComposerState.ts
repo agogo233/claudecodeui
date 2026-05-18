@@ -563,12 +563,15 @@ export function useChatComposerState({
 
       if (!effectiveSessionId && !selectedSession?.id) {
         if (typeof window !== 'undefined') {
-          // Reset stale pending IDs from previous interrupted runs before creating a new one.
           sessionStorage.removeItem('pendingSessionId');
         }
-        // For new sessions we intentionally keep this as `null` until the backend
-        // emits `session_created` with the canonical provider session id.
-        pendingViewSessionRef.current = { sessionId: null, startedAt: Date.now() };
+        // Generate an optimistic sessionId so stream_delta and other messages
+        // are not orphaned before session_created arrives.  getSid() in
+        // useChatRealtimeHandlers falls back to pendingViewSessionRef so this
+        // ID must be set here.
+        const optimisticId = `opt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        sessionStorage.setItem('pendingSessionId', optimisticId);
+        pendingViewSessionRef.current = { sessionId: optimisticId, startedAt: Date.now() };
       }
       if (effectiveSessionId) {
         onSessionActive?.(effectiveSessionId);

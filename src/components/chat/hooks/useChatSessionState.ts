@@ -212,7 +212,7 @@ export function useChatSessionState({
   /*  Derive chatMessages from the store                              */
   /* ---------------------------------------------------------------- */
 
-  const activeSessionId = selectedSession?.id || currentSessionId || null;
+  const activeSessionId = selectedSession?.id || currentSessionId || pendingViewSessionRef.current?.sessionId || sessionStorage.getItem('pendingSessionId') || null;
   const [pendingUserMessage, setPendingUserMessage] = useState<ChatMessage | null>(null);
   const flushedPendingUserMessageRef = useRef<ChatMessage | null>(null);
 

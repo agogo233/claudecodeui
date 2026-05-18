@@ -154,6 +154,10 @@ export function useChatComposerState({
     ((event: FormEvent<HTMLFormElement> | MouseEvent | TouchEvent | KeyboardEvent<HTMLTextAreaElement>) => Promise<void>) | null
   >(null);
   const inputValueRef = useRef(input);
+  const sentHistoryRef = useRef<string[]>([]);
+  const historyCursorRef = useRef(-1);
+  const savedDraftRef = useRef('');
+  const pendingCustomSubmitRef = useRef(0);
   const selectedProjectId = selectedProject?.projectId;
 
   const handleBuiltInCommand = useCallback(
@@ -262,6 +266,7 @@ export function useChatComposerState({
 
     // Defer submit to next tick so the command text is reflected in UI before dispatching.
     setTimeout(() => {
+      pendingCustomSubmitRef.current++;
       if (handleSubmitRef.current) {
         handleSubmitRef.current(createFakeSubmitEvent());
       }
@@ -680,6 +685,10 @@ export function useChatComposerState({
         });
       }
 
+      sentHistoryRef.current.push(currentInput.trimEnd());
+      historyCursorRef.current = -1;
+      if (sentHistoryRef.current.length > 200) sentHistoryRef.current.shift();
+
       setInput('');
       inputValueRef.current = '';
       resetCommandMenuState();
@@ -810,6 +819,52 @@ export function useChatComposerState({
       if (event.key === 'Tab' && !showFileDropdown && !showCommandMenu) {
         event.preventDefault();
         cyclePermissionMode();
+        return;
+      }
+
+      if (event.key === 'ArrowUp' && !showCommandMenu && !showFileDropdown) {
+        event.preventDefault();
+        const history = sentHistoryRef.current;
+        if (history.length === 0) return;
+        if (historyCursorRef.current === -1) {
+          savedDraftRef.current = inputValueRef.current;
+          historyCursorRef.current = history.length - 1;
+        } else if (historyCursorRef.current > 0) {
+          historyCursorRef.current--;
+        } else {
+          return;
+        }
+        const text = history[historyCursorRef.current];
+        setInput(text);
+        inputValueRef.current = text;
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            textareaRef.current.setSelectionRange(text.length, text.length);
+          }
+        });
+        return;
+      }
+
+      if (event.key === 'ArrowDown' && !showCommandMenu && !showFileDropdown) {
+        event.preventDefault();
+        if (historyCursorRef.current === -1) return;
+        if (historyCursorRef.current === sentHistoryRef.current.length - 1) {
+          historyCursorRef.current = -1;
+          const text = savedDraftRef.current;
+          setInput(text);
+          inputValueRef.current = text;
+        } else {
+          historyCursorRef.current++;
+          const text = sentHistoryRef.current[historyCursorRef.current];
+          setInput(text);
+          inputValueRef.current = text;
+        }
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            const len = inputValueRef.current.length;
+            textareaRef.current.setSelectionRange(len, len);
+          }
+        });
         return;
       }
 

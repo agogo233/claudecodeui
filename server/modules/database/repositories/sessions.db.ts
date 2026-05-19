@@ -222,4 +222,16 @@ export const sessionsDb = {
     const db = getConnection();
     return db.prepare('DELETE FROM sessions WHERE session_id = ?').run(sessionId).changes > 0;
   },
+
+  getSessionsOlderThan(days: number): SessionRow[] {
+    const db = getConnection();
+    return db
+      .prepare(
+        `SELECT session_id, provider, project_path, jsonl_path, custom_name, isArchived, created_at, updated_at
+         FROM sessions
+         WHERE datetime(COALESCE(updated_at, created_at)) < datetime('now', '-' || ? || ' days')
+         ORDER BY datetime(COALESCE(updated_at, created_at)) ASC`
+      )
+      .all(days) as SessionRow[];
+  },
 };

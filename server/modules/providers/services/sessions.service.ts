@@ -216,6 +216,71 @@ export const sessionsService = {
   },
 
   /**
+   * Permanently removes every session whose last activity is older than the
+   * specified number of days. Both the database row and the on-disk transcript
+   * file (jsonl_path) are deleted.
+   *
+   * When `dryRun` is true the method only returns the matching sessions without
+   * deleting anything, so callers can preview what would be removed.
+   */
+  async cleanupOldSessions(
+    days: number,
+    dryRun?: boolean,
+  ): Promise<{
+    total: number;
+    deleted: number;
+    removedFromDisk: number;
+    sessions: Array<{
+      sessionId: string;
+      provider: string;
+      projectPath: string | null;
+      sessionTitle: string;
+      updatedAt: string | null;
+    }>;
+  }> {
+    const oldSessions = sessionsDb.getSessionsOlderThan(days);
+
+    if (dryRun) {
+      return {
+        total: oldSessions.length,
+        deleted: 0,
+        removedFromDisk: 0,
+        sessions: oldSessions.map((s) => ({
+          sessionId: s.session_id,
+          provider: s.provider,
+          projectPath: s.project_path,
+          sessionTitle: s.custom_name?.trim() || s.session_id,
+          updatedAt: s.updated_at,
+        })),
+      };
+    }
+
+    let deleted = 0;
+    let removedFromDisk = 0;
+
+    for (const session of oldSessions) {
+      const dbDeleted = sessionsDb.deleteSessionById(session.session_id);
+      if (dbDeleted) {
+        deleted++;
+      }
+
+      if (session.jsonl_path) {
+        const diskRemoved = await removeFileIfExists(session.jsonl_path);
+        if (diskRemoved) {
+          removedFromDisk++;
+        }
+      }
+    }
+
+    return {
+      total: oldSessions.length,
+      deleted,
+      removedFromDisk,
+      sessions: [],
+    };
+  },
+
+  /**
    * Renames one session by id without requiring the caller to pass provider.
    */
   renameSessionById(sessionId: string, summary: string): { sessionId: string; summary: string } {

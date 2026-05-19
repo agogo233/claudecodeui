@@ -96,7 +96,24 @@
     "tasks": "任务",
     "notifications": "通知",
     "plugins": "插件",
-    "about": "关于"
+    "about": "关于",
+    "data": "数据管理"
+  },
+  "data": {
+    "title": "数据管理",
+    "description": "清理旧会话数据以释放磁盘空间。",
+    "daysLabel": "距上次活动的天数",
+    "preview": "预览",
+    "cleanup": "立即删除",
+    "previewTitle": "待删除的会话",
+    "noSessions": "未找到符合条件的会话。",
+    "resultTitle": "清理完成",
+    "resultSummary": "总计：{{total}} | 已删除：{{deleted}} | 已删除磁盘文件：{{removedFromDisk}}",
+    "warning": "此操作不可撤销。所有列出的会话及其对话文件将被永久删除。",
+    "colTitle": "会话",
+    "colProvider": "提供商",
+    "colProject": "项目",
+    "colActivity": "最后活动"
   },
   "notifications": {
     "title": "通知",

@@ -96,7 +96,24 @@
     "tasks": "Tasks",
     "notifications": "Notifications",
     "plugins": "Plugins",
-    "about": "About"
+    "about": "About",
+    "data": "Data"
+  },
+  "data": {
+    "title": "Data Management",
+    "description": "Clean up old session data to free up disk space.",
+    "daysLabel": "Days since last activity",
+    "preview": "Preview",
+    "cleanup": "Delete Now",
+    "previewTitle": "Sessions to be deleted",
+    "noSessions": "No sessions found matching the criteria.",
+    "resultTitle": "Cleanup completed",
+    "resultSummary": "Total: {{total}} | Deleted: {{deleted}} | Files removed from disk: {{removedFromDisk}}",
+    "warning": "This action cannot be undone. All listed sessions and their transcript files will be permanently deleted.",
+    "colTitle": "Session",
+    "colProvider": "Provider",
+    "colProject": "Project",
+    "colActivity": "Last Activity"
   },
   "notifications": {
     "title": "Notifications",

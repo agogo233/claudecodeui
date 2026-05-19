@@ -403,6 +403,24 @@ router.get(
   }),
 );
 
+router.delete(
+  '/sessions/cleanup/older-than/:days',
+  asyncHandler(async (req: Request, res: Response) => {
+    const daysRaw = req.params.days;
+    const days = Number.parseInt(daysRaw, 10);
+    if (Number.isNaN(days) || days < 1) {
+      throw new AppError('days must be a positive integer.', {
+        code: 'INVALID_QUERY_PARAMETER',
+        statusCode: 400,
+      });
+    }
+
+    const dryRun = parseOptionalBooleanQuery(req.query.dryRun, 'dryRun') ?? false;
+    const result = await sessionsService.cleanupOldSessions(days, dryRun);
+    res.json(createApiSuccessResponse(result));
+  }),
+);
+
 router.get('/search/sessions', asyncHandler(async (req: Request, res: Response) => {
   const query = parseSessionSearchQuery(req.query.q);
   const limit = parseSessionSearchLimit(req.query.limit);

@@ -102,6 +102,13 @@ export const api = {
     authenticatedFetch(`/api/providers/sessions/${sessionId}/restore`, {
       method: 'POST',
     }),
+  cleanupOldSessions: (days, dryRun = false) => {
+    const params = new URLSearchParams();
+    if (dryRun) params.set('dryRun', 'true');
+    return authenticatedFetch(`/api/providers/sessions/cleanup/older-than/${days}?${params.toString()}`, {
+      method: 'DELETE',
+    });
+  },
   renameSession: (sessionId, summary) =>
     authenticatedFetch(`/api/providers/sessions/${sessionId}`, {
       method: 'PUT',

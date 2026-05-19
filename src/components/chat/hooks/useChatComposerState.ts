@@ -157,7 +157,6 @@ export function useChatComposerState({
   const sentHistoryRef = useRef<string[]>([]);
   const historyCursorRef = useRef(-1);
   const savedDraftRef = useRef('');
-  const pendingCustomSubmitRef = useRef(0);
   const selectedProjectId = selectedProject?.projectId;
 
   const handleBuiltInCommand = useCallback(
@@ -266,7 +265,6 @@ export function useChatComposerState({
 
     // Defer submit to next tick so the command text is reflected in UI before dispatching.
     setTimeout(() => {
-      pendingCustomSubmitRef.current++;
       if (handleSubmitRef.current) {
         handleSubmitRef.current(createFakeSubmitEvent());
       }

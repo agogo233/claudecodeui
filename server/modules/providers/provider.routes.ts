@@ -406,7 +406,7 @@ router.get(
 router.delete(
   '/sessions/cleanup/older-than/:days',
   asyncHandler(async (req: Request, res: Response) => {
-    const daysRaw = req.params.days;
+    const daysRaw = readPathParam(req.params.days, 'days');
     const days = Number.parseInt(daysRaw, 10);
     if (Number.isNaN(days) || days < 1) {
       throw new AppError('days must be a positive integer.', {

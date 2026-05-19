@@ -7,7 +7,7 @@ import {
   CURSOR_MODELS,
   GEMINI_MODELS,
   OPENCODE_MODELS,
-} from '../../../../../../../shared/modelConstants';
+} from '../../../../../../../../shared/modelConstants';
 import { Button, Input } from '../../../../../../../shared/view/ui';
 import SessionProviderLogo from '../../../../../../llm-logo-provider/SessionProviderLogo';
 import type { AgentProvider } from '../../../../../types/types';
@@ -16,7 +16,7 @@ import {
   addCustomModel,
   removeCustomModel,
   updateCustomModel,
-} from '../../../../../../utils/customModels';
+} from '../../../../../../../utils/customModels';
 
 type ModelsContentProps = {
   agent: AgentProvider;

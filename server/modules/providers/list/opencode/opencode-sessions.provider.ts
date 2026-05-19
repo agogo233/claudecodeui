@@ -174,22 +174,22 @@ export class OpenCodeSessionsProvider implements IProviderSessions {
               toolId,
             }));
 
-            if (partData.state?.output !== undefined) {
-              const output = typeof partData.state.output === 'string'
+            if (partData.state?.output !== undefined || partData.state?.error !== undefined) {
+              const output = typeof partData.state?.output === 'string'
                 ? partData.state.output
-                : JSON.stringify(partData.state.output);
+                : partData.state?.error ?? '';
               allMessages.push(createNormalizedMessage({
                 id: `${partRow.id}_result`, sessionId, timestamp: partTs, provider: PROVIDER,
                 kind: 'tool_result', toolId, content: output,
-                isError: partData.state.isError ?? false,
+                isError: partData.state?.status === 'error',
               }));
             }
           } else if (partData.type === 'step-finish') {
-            const tokens = partData.metadata?.tokens;
-            if (tokens) {
+            const t = partData.tokens as { total?: number } | undefined;
+            if (t?.total) {
               allMessages.push(createNormalizedMessage({
                 id: partRow.id, sessionId, timestamp: partTs, provider: PROVIDER,
-                kind: 'status', text: 'Complete', tokens, canInterrupt: false,
+                kind: 'status', text: 'Complete', tokens: t.total, canInterrupt: false,
               }));
             }
           }

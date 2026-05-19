@@ -35,7 +35,8 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip python3-venv \
     git ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && git config --system core.quotepath false
 
 # 创建 node 用户的可写目录
 RUN mkdir -p /home/node/.local /home/node/.npm-global && \

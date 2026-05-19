@@ -2,8 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../../../../../lib/utils';
 import type { AgentCategory } from '../../../../types/types';
 import type { AgentCategoryTabsSectionProps } from '../types';
-
-const AGENT_CATEGORIES: AgentCategory[] = ['account', 'permissions', 'mcp'];
+import { AGENT_CATEGORIES } from '../../../../constants/constants';
 
 export default function AgentCategoryTabsSection({
   selectedCategory,
@@ -30,6 +29,7 @@ export default function AgentCategoryTabsSection({
             {category === 'account' && t('tabs.account')}
             {category === 'permissions' && t('tabs.permissions')}
             {category === 'mcp' && t('tabs.mcpServers')}
+            {category === 'models' && 'Models'}
           </button>
         ))}
       </div>

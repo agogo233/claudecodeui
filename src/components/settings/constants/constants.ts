@@ -38,7 +38,7 @@ export const SETTINGS_MAIN_TABS: SettingsMainTabMeta[] = [
 ];
 
 export const AGENT_PROVIDERS: AgentProvider[] = ['claude', 'cursor', 'codex', 'gemini'];
-export const AGENT_CATEGORIES: AgentCategory[] = ['account', 'permissions', 'mcp'];
+export const AGENT_CATEGORIES: AgentCategory[] = ['account', 'permissions', 'mcp', 'models'];
 
 export const DEFAULT_PROJECT_SORT_ORDER: ProjectSortOrder = 'name';
 export const DEFAULT_SAVE_STATUS = null;

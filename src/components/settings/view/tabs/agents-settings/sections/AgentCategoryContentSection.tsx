@@ -4,6 +4,7 @@ import { McpServers } from '../../../../../mcp';
 
 import AccountContent from './content/AccountContent';
 import PermissionsContent from './content/PermissionsContent';
+import ModelsContent from './content/ModelsContent';
 
 export default function AgentCategoryContentSection({
   selectedAgent,
@@ -69,6 +70,10 @@ export default function AgentCategoryContentSection({
           permissionMode={codexPermissionMode}
           onPermissionModeChange={onCodexPermissionModeChange}
         />
+      )}
+
+      {selectedCategory === 'models' && (
+        <ModelsContent agent={selectedAgent} />
       )}
 
       {selectedCategory === 'mcp' && (

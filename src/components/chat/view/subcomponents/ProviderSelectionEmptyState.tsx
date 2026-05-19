@@ -13,6 +13,7 @@ import {
   PROVIDERS,
 } from "../../../../../shared/modelConstants";
 import type { ProjectSession, LLMProvider } from "../../../../types/app";
+import { getCustomModels } from "../../../../utils/customModels";
 import { NextTaskBanner } from "../../../task-master";
 import {
   Dialog,
@@ -59,18 +60,30 @@ type ProviderGroup = {
   models: { value: string; label: string }[];
 };
 
-const PROVIDER_GROUPS: ProviderGroup[] = PROVIDERS.map((p) => ({
-  id: p.id as LLMProvider,
-  name: p.name,
-  models: p.models.OPTIONS,
-}));
+function getProviderGroups(): ProviderGroup[] {
+  return PROVIDERS.map((p) => {
+    const providerId = p.id as LLMProvider;
+    const custom = getCustomModels(providerId);
+    return {
+      id: providerId,
+      name: p.name,
+      models: [...p.models.OPTIONS, ...custom],
+    };
+  });
+}
 
 function getModelConfig(p: LLMProvider) {
-  if (p === "claude") return CLAUDE_MODELS;
-  if (p === "codex") return CODEX_MODELS;
-  if (p === "gemini") return GEMINI_MODELS;
-  if (p === "opencode") return OPENCODE_MODELS;
-  return CURSOR_MODELS;
+  let config;
+  if (p === "claude") config = CLAUDE_MODELS;
+  else if (p === "codex") config = CODEX_MODELS;
+  else if (p === "gemini") config = GEMINI_MODELS;
+  else if (p === "opencode") config = OPENCODE_MODELS;
+  else config = CURSOR_MODELS;
+  const custom = getCustomModels(p);
+  return {
+    ...config,
+    OPTIONS: [...config.OPTIONS, ...custom],
+  };
 }
 
 function getCurrentModel(
@@ -123,7 +136,10 @@ export default function ProviderSelectionEmptyState({
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const visibleProviderGroups = useMemo(
-    () => (isWindowsServer ? PROVIDER_GROUPS.filter((p) => p.id !== "cursor") : PROVIDER_GROUPS),
+    () => {
+      const groups = getProviderGroups();
+      return isWindowsServer ? groups.filter((p) => p.id !== "cursor") : groups;
+    },
     [isWindowsServer],
   );
 

@@ -312,9 +312,9 @@ function extractTokenBudget(resultMessage) {
   // Total used = input + output + cache tokens
   const totalUsed = inputTokens + outputTokens + cacheReadTokens + cacheCreationTokens;
 
-  // Use configured context window budget from environment (default 160000)
+  // Use configured context window budget from environment (default 200000)
   // This is the user's budget limit, not the model's context window
-  const contextWindow = parseInt(process.env.CONTEXT_WINDOW) || 160000;
+  const contextWindow = parseInt(process.env.CONTEXT_WINDOW) || 200000;
 
   // Token calc logged via token-budget WS event
 

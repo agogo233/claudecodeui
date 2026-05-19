@@ -1381,8 +1381,9 @@ app.get('/api/projects/:projectId/sessions/:sessionId/token-usage', authenticate
         const lines = fileContent.trim().split('\n');
 
         const parsedContextWindow = parseInt(process.env.CONTEXT_WINDOW, 10);
-        const contextWindow = Number.isFinite(parsedContextWindow) ? parsedContextWindow : 160000;
+        const contextWindow = Number.isFinite(parsedContextWindow) ? parsedContextWindow : 200000;
         let inputTokens = 0;
+        let outputTokens = 0;
         let cacheCreationTokens = 0;
         let cacheReadTokens = 0;
 
@@ -1397,6 +1398,7 @@ app.get('/api/projects/:projectId/sessions/:sessionId/token-usage', authenticate
 
                     // Use token counts from latest assistant message only
                     inputTokens = usage.input_tokens || 0;
+                    outputTokens = usage.output_tokens || 0;
                     cacheCreationTokens = usage.cache_creation_input_tokens || 0;
                     cacheReadTokens = usage.cache_read_input_tokens || 0;
 
@@ -1408,14 +1410,15 @@ app.get('/api/projects/:projectId/sessions/:sessionId/token-usage', authenticate
             }
         }
 
-        // Calculate total context usage (excluding output_tokens, as per ccusage)
-        const totalUsed = inputTokens + cacheCreationTokens + cacheReadTokens;
+        // Calculate total context usage (input + output + cache)
+        const totalUsed = inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens;
 
         res.json({
             used: totalUsed,
             total: contextWindow,
             breakdown: {
                 input: inputTokens,
+                output: outputTokens,
                 cacheCreation: cacheCreationTokens,
                 cacheRead: cacheReadTokens
             }

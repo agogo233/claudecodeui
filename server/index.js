@@ -869,7 +869,6 @@ app.put('/api/projects/:projectId/files/move', authenticateToken, async (req, re
             return res.status(400).json({ error: 'Source and destination are the same' });
         }
 
-        const sourceDir = path.dirname(resolvedSource);
         if (resolvedDest.startsWith(resolvedSource + path.sep)) {
             return res.status(400).json({ error: 'Cannot move a directory into itself' });
         }

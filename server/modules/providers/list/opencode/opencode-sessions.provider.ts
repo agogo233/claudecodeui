@@ -174,10 +174,10 @@ export class OpenCodeSessionsProvider implements IProviderSessions {
               toolId,
             }));
 
-            if (partData.state?.output !== undefined || partData.state?.isError !== undefined) {
+            if (partData.state?.output !== undefined || partData.state?.isError) {
               const output = typeof partData.state?.output === 'string'
                 ? partData.state.output
-                : partData.state?.isError ?? '';
+                : '';
               allMessages.push(createNormalizedMessage({
                 id: `${partRow.id}_result`, sessionId, timestamp: partTs, provider: PROVIDER,
                 kind: 'tool_result', toolId, content: output,

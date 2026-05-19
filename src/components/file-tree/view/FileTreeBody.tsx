@@ -22,7 +22,8 @@ type FileTreeBodyProps = {
   onCopyPath?: (item: FileTreeNode) => void;
   onDownload?: (item: FileTreeNode) => void;
   onRefresh?: () => void;
-  // Rename state for inline editing
+  onCut?: (item: FileTreeNode) => void;
+  onPaste?: (dirPath: string) => void;
   renamingItem?: FileTreeNode | null;
   renameValue?: string;
   setRenameValue?: (value: string) => void;
@@ -30,6 +31,14 @@ type FileTreeBodyProps = {
   handleCancelRename?: () => void;
   renameInputRef?: RefObject<HTMLInputElement>;
   operationLoading?: boolean;
+  cutItem?: FileTreeNode | null;
+  dragItem?: { path: string; type: 'file' | 'directory' } | null;
+  hoveredDir?: string | null;
+  onDragStart?: (e: React.DragEvent, item: FileTreeNode) => void;
+  onDragOver?: (e: React.DragEvent, dirPath: string) => void;
+  onDragLeave?: (dirPath: string) => void;
+  onDrop?: (e: React.DragEvent, targetDir: string) => void;
+  onDragEnd?: () => void;
 };
 
 export default function FileTreeBody({
@@ -49,6 +58,8 @@ export default function FileTreeBody({
   onCopyPath,
   onDownload,
   onRefresh,
+  onCut,
+  onPaste,
   renamingItem,
   renameValue,
   setRenameValue,
@@ -56,6 +67,14 @@ export default function FileTreeBody({
   handleCancelRename,
   renameInputRef,
   operationLoading,
+  cutItem,
+  dragItem,
+  hoveredDir,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
 }: FileTreeBodyProps) {
   const { t } = useTranslation();
 
@@ -89,6 +108,8 @@ export default function FileTreeBody({
           onCopyPath={onCopyPath}
           onDownload={onDownload}
           onRefresh={onRefresh}
+          onCut={onCut}
+          onPaste={onPaste}
           renamingItem={renamingItem}
           renameValue={renameValue}
           setRenameValue={setRenameValue}
@@ -96,6 +117,14 @@ export default function FileTreeBody({
           handleCancelRename={handleCancelRename}
           renameInputRef={renameInputRef}
           operationLoading={operationLoading}
+          cutItem={cutItem}
+          dragItem={dragItem}
+          hoveredDir={hoveredDir}
+          onDragStart={onDragStart}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          onDragEnd={onDragEnd}
         />
       )}
     </>

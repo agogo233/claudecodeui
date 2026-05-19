@@ -127,8 +127,23 @@
       "newFile": "Yeni Dosya",
       "newFolder": "Yeni Klasör",
       "refresh": "Yenile",
+      "cut": "Kes",
+      "paste": "Yapıştır",
       "menuLabel": "Dosya bağlam menüsü",
       "loading": "Yükleniyor..."
+    },
+    "cutItemIndicator": "Kesilen: {{name}}",
+    "conflict": {
+      "title": "Dosya Zaten Mevcut",
+      "message": "\"{{name}}\" \"{{dir}}\" içinde zaten mevcut.",
+      "overwrite": "Üzerine Yaz",
+      "autoRename": "Otomatik Yeniden Adlandır",
+      "cancel": "İptal"
+    },
+    "toast": {
+      "moved": "Başarıyla taşındı",
+      "circularMove": "Bir klasör kendi içine taşınamaz",
+      "renameFailed": "Uygun bir ad bulunamadı"
     }
   },
   "projectWizard": {

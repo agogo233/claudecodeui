@@ -127,8 +127,23 @@
       "newFile": "New File",
       "newFolder": "New Folder",
       "refresh": "Refresh",
+      "cut": "Cut",
+      "paste": "Paste",
       "menuLabel": "File context menu",
       "loading": "Loading..."
+    },
+    "cutItemIndicator": "Cut: {{name}}",
+    "conflict": {
+      "title": "File Already Exists",
+      "message": "\"{{name}}\" already exists in \"{{dir}}\".",
+      "overwrite": "Overwrite",
+      "autoRename": "Auto-rename",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "moved": "Moved successfully",
+      "circularMove": "Cannot move a folder into itself",
+      "renameFailed": "Could not find an available name"
     }
   },
   "projectWizard": {

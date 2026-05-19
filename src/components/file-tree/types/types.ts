@@ -29,3 +29,10 @@ export interface FileIconData {
 }
 
 export type FileIconMap = Record<string, FileIconData>;
+
+export interface FileMoveConflict {
+  isOpen: boolean;
+  sourcePath: string;
+  destDir: string;
+  name: string;
+}

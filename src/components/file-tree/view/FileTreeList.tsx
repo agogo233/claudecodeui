@@ -17,7 +17,8 @@ type FileTreeListProps = {
   onCopyPath?: (item: FileTreeNodeType) => void;
   onDownload?: (item: FileTreeNodeType) => void;
   onRefresh?: () => void;
-  // Rename state for inline editing
+  onCut?: (item: FileTreeNodeType) => void;
+  onPaste?: (dirPath: string) => void;
   renamingItem?: FileTreeNodeType | null;
   renameValue?: string;
   setRenameValue?: (value: string) => void;
@@ -25,6 +26,14 @@ type FileTreeListProps = {
   handleCancelRename?: () => void;
   renameInputRef?: RefObject<HTMLInputElement>;
   operationLoading?: boolean;
+  cutItem?: FileTreeNodeType | null;
+  dragItem?: { path: string; type: 'file' | 'directory' } | null;
+  hoveredDir?: string | null;
+  onDragStart?: (e: React.DragEvent, item: FileTreeNodeType) => void;
+  onDragOver?: (e: React.DragEvent, dirPath: string) => void;
+  onDragLeave?: (dirPath: string) => void;
+  onDrop?: (e: React.DragEvent, targetDir: string) => void;
+  onDragEnd?: () => void;
 };
 
 export default function FileTreeList({
@@ -42,6 +51,8 @@ export default function FileTreeList({
   onCopyPath,
   onDownload,
   onRefresh,
+  onCut,
+  onPaste,
   renamingItem,
   renameValue,
   setRenameValue,
@@ -49,6 +60,14 @@ export default function FileTreeList({
   handleCancelRename,
   renameInputRef,
   operationLoading,
+  cutItem,
+  dragItem,
+  hoveredDir,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
 }: FileTreeListProps) {
   return (
     <div>
@@ -70,6 +89,8 @@ export default function FileTreeList({
           onCopyPath={onCopyPath}
           onDownload={onDownload}
           onRefresh={onRefresh}
+          onCut={onCut}
+          onPaste={onPaste}
           renamingItem={renamingItem}
           renameValue={renameValue}
           setRenameValue={setRenameValue}
@@ -77,6 +98,14 @@ export default function FileTreeList({
           handleCancelRename={handleCancelRename}
           renameInputRef={renameInputRef}
           operationLoading={operationLoading}
+          isCutItem={cutItem?.path === item.path}
+          isDragItem={dragItem?.path === item.path}
+          isHoveredDir={hoveredDir === item.path}
+          onDragStart={onDragStart}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          onDragEnd={onDragEnd}
         />
       ))}
     </div>

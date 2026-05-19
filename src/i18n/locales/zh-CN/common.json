@@ -127,8 +127,23 @@
       "newFile": "新建文件",
       "newFolder": "新建文件夹",
       "refresh": "刷新",
+      "cut": "剪切",
+      "paste": "粘贴",
       "menuLabel": "文件上下文菜单",
       "loading": "加载中..."
+    },
+    "cutItemIndicator": "已剪切: {{name}}",
+    "conflict": {
+      "title": "文件已存在",
+      "message": "\"{{name}}\" 已存在于 \"{{dir}}\" 中。",
+      "overwrite": "覆盖",
+      "autoRename": "自动重命名",
+      "cancel": "取消"
+    },
+    "toast": {
+      "moved": "移动成功",
+      "circularMove": "不能将文件夹移动到自身内部",
+      "renameFailed": "无法找到可用名称"
     }
   },
   "projectWizard": {

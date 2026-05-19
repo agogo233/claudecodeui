@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Copy, Download, FileText, FolderPlus, Pencil, RefreshCw, Trash2, type LucideIcon } from 'lucide-react';
+import { ClipboardPaste, Copy, Download, FileText, FolderPlus, Pencil, RefreshCw, Scissors, Trash2, type LucideIcon } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
 type FileContextItem = {
@@ -30,7 +30,6 @@ const CONTEXT_MENU_HEIGHT = 300;
 const VIEWPORT_PADDING = 10;
 
 function calculateViewportSafePosition(clientX: number, clientY: number) {
-  // Keep the context menu inside the visible viewport.
   const safeX =
     clientX + CONTEXT_MENU_WIDTH > window.innerWidth
       ? window.innerWidth - CONTEXT_MENU_WIDTH - VIEWPORT_PADDING
@@ -53,6 +52,8 @@ export default function FileContextMenu({
   onRefresh,
   onCopyPath,
   onDownload,
+  onCut,
+  onPaste,
   isLoading = false,
   className = '',
 }: {
@@ -65,6 +66,8 @@ export default function FileContextMenu({
   onRefresh?: () => void;
   onCopyPath?: (item: FileContextItem) => void;
   onDownload?: (item: FileContextItem) => void;
+  onCut?: (item: FileContextItem) => void;
+  onPaste?: () => void;
   isLoading?: boolean;
   className?: string;
 }) {
@@ -92,7 +95,16 @@ export default function FileContextMenu({
 
   const menuActions = useMemo<ContextMenuAction[]>(() => {
     if (item?.type === 'file') {
-      return [
+      const actions: ContextMenuAction[] = [];
+      if (onCut) {
+        actions.push({
+          key: 'cut',
+          icon: Scissors,
+          label: t('fileTree.context.cut', 'Cut'),
+          onSelect: () => onCut(item),
+        });
+      }
+      actions.push(
         {
           key: 'rename',
           icon: Pencil,
@@ -119,11 +131,29 @@ export default function FileContextMenu({
           label: t('fileTree.context.download', 'Download'),
           onSelect: () => onDownload?.(item),
         },
-      ];
+      );
+      return actions;
     }
 
     if (item?.type === 'directory') {
-      return [
+      const actions: ContextMenuAction[] = [];
+      if (onCut) {
+        actions.push({
+          key: 'cut',
+          icon: Scissors,
+          label: t('fileTree.context.cut', 'Cut'),
+          onSelect: () => onCut(item),
+        });
+      }
+      if (onPaste) {
+        actions.push({
+          key: 'paste',
+          icon: ClipboardPaste,
+          label: t('fileTree.context.paste', 'Paste'),
+          onSelect: onPaste,
+        });
+      }
+      actions.push(
         {
           key: 'newFile',
           icon: FileText,
@@ -163,10 +193,20 @@ export default function FileContextMenu({
           label: t('fileTree.context.download', 'Download'),
           onSelect: () => onDownload?.(item),
         },
-      ];
+      );
+      return actions;
     }
 
-    return [
+    const actions: ContextMenuAction[] = [];
+    if (onPaste) {
+      actions.push({
+        key: 'paste',
+        icon: ClipboardPaste,
+        label: t('fileTree.context.paste', 'Paste'),
+        onSelect: onPaste,
+      });
+    }
+    actions.push(
       {
         key: 'newFile',
         icon: FileText,
@@ -186,8 +226,9 @@ export default function FileContextMenu({
         onSelect: onRefresh,
         showDividerBefore: true,
       },
-    ];
-  }, [item, onCopyPath, onDelete, onDownload, onNewFile, onNewFolder, onRefresh, onRename, t]);
+    );
+    return actions;
+  }, [item, onCopyPath, onCut, onDelete, onDownload, onNewFile, onNewFolder, onPaste, onRefresh, onRename, t]);
 
   useEffect(() => {
     if (!isMenuOpen) {
@@ -221,7 +262,6 @@ export default function FileContextMenu({
       return;
     }
 
-    // Arrow key support keeps the menu accessible without a mouse.
     const handleKeyboardMenuNavigation = (event: KeyboardEvent) => {
       const menuItems = menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])');
       if (!menuItems || menuItems.length === 0) {

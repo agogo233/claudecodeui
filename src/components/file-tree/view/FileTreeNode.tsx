@@ -1,5 +1,5 @@
 import type { ReactNode, RefObject } from 'react';
-import { ChevronRight, Folder, FolderOpen } from 'lucide-react';
+import { ChevronRight, Folder, FolderOpen, Scissors } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import type { FileTreeNode as FileTreeNodeType, FileTreeViewMode } from '../types/types';
 import { Input } from '../../../shared/view/ui';
@@ -21,7 +21,8 @@ type FileTreeNodeProps = {
   onCopyPath?: (item: FileTreeNodeType) => void;
   onDownload?: (item: FileTreeNodeType) => void;
   onRefresh?: () => void;
-  // Rename state for inline editing
+  onCut?: (item: FileTreeNodeType) => void;
+  onPaste?: (dirPath: string) => void;
   renamingItem?: FileTreeNodeType | null;
   renameValue?: string;
   setRenameValue?: (value: string) => void;
@@ -29,6 +30,14 @@ type FileTreeNodeProps = {
   handleCancelRename?: () => void;
   renameInputRef?: RefObject<HTMLInputElement>;
   operationLoading?: boolean;
+  isCutItem?: boolean;
+  isDragItem?: boolean;
+  isHoveredDir?: boolean;
+  onDragStart?: (e: React.DragEvent, item: FileTreeNodeType) => void;
+  onDragOver?: (e: React.DragEvent, dirPath: string) => void;
+  onDragLeave?: (dirPath: string) => void;
+  onDrop?: (e: React.DragEvent, targetDir: string) => void;
+  onDragEnd?: () => void;
 };
 
 type TreeItemIconProps = {
@@ -75,6 +84,8 @@ export default function FileTreeNode({
   onCopyPath,
   onDownload,
   onRefresh,
+  onCut,
+  onPaste,
   renamingItem,
   renameValue,
   setRenameValue,
@@ -82,6 +93,14 @@ export default function FileTreeNode({
   handleCancelRename,
   renameInputRef,
   operationLoading,
+  isCutItem,
+  isDragItem,
+  isHoveredDir,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
 }: FileTreeNodeProps) {
   const isDirectory = item.type === 'directory';
   const isOpen = isDirectory && expandedDirs.has(item.path);
@@ -93,7 +112,6 @@ export default function FileTreeNode({
     isDirectory ? 'font-medium text-foreground' : 'text-foreground/90',
   );
 
-  // View mode only changes the row layout; selection, expansion, and recursion stay shared.
   const rowClassName = cn(
     viewMode === 'detailed'
       ? 'group grid grid-cols-12 gap-2 py-[3px] pr-2 hover:bg-accent/60 cursor-pointer items-center rounded-sm transition-colors duration-100'
@@ -102,9 +120,36 @@ export default function FileTreeNode({
       : 'group flex items-center gap-1.5 py-[3px] pr-2 cursor-pointer rounded-sm hover:bg-accent/60 transition-colors duration-100',
     isDirectory && isOpen && 'border-l-2 border-primary/30',
     (isDirectory && !isOpen) || !isDirectory ? 'border-l-2 border-transparent' : '',
+    isCutItem && 'opacity-50 border-dashed border-muted-foreground',
+    isDragItem && 'opacity-40',
+    isHoveredDir && isDirectory && 'bg-accent/50 border-l-2 border-primary',
   );
 
-  // Render rename input if this item is being renamed
+  const handleRowDragStart = (e: React.DragEvent) => {
+    if (isRenaming) return;
+    onDragStart?.(e, item);
+  };
+
+  const handleRowDragOver = (e: React.DragEvent) => {
+    if (!isDirectory) return;
+    onDragOver?.(e, item.path);
+  };
+
+  const handleRowDragLeave = () => {
+    if (!isDirectory) return;
+    onDragLeave?.(item.path);
+  };
+
+  const handleRowDrop = (e: React.DragEvent) => {
+    if (!isDirectory) return;
+    onDrop?.(e, item.path);
+  };
+
+  const handleContextPaste = () => {
+    if (!isDirectory) return;
+    onPaste?.(item.path);
+  };
+
   if (isRenaming && setRenameValue && handleConfirmRename && handleCancelRename) {
     return (
       <div
@@ -140,7 +185,18 @@ export default function FileTreeNode({
       className={rowClassName}
       style={{ paddingLeft: `${level * 16 + 4}px` }}
       onClick={() => onItemClick(item)}
+      draggable={!isRenaming}
+      onDragStart={handleRowDragStart}
+      onDragOver={handleRowDragOver}
+      onDragLeave={handleRowDragLeave}
+      onDrop={handleRowDrop}
+      onDragEnd={onDragEnd}
     >
+      {isCutItem && (
+        <span className="absolute left-0 top-0 bottom-0 flex items-center pl-1">
+          <Scissors className="h-3 w-3 text-muted-foreground" />
+        </span>
+      )}
       {viewMode === 'detailed' ? (
         <>
           <div className="col-span-5 flex min-w-0 items-center gap-1.5">
@@ -177,8 +233,7 @@ export default function FileTreeNode({
     </div>
   );
 
-  // Check if context menu callbacks are provided
-  const hasContextMenu = onRename || onDelete || onNewFile || onNewFolder || onCopyPath || onDownload || onRefresh;
+  const hasContextMenu = onRename || onDelete || onNewFile || onNewFolder || onCopyPath || onDownload || onRefresh || onCut || onPaste;
 
   return (
     <div className="select-none">
@@ -192,6 +247,8 @@ export default function FileTreeNode({
           onCopyPath={onCopyPath}
           onDownload={onDownload}
           onRefresh={onRefresh}
+          onCut={onCut}
+          onPaste={isDirectory ? handleContextPaste : undefined}
         >
           {rowContent}
         </FileContextMenu>
@@ -224,6 +281,8 @@ export default function FileTreeNode({
               onCopyPath={onCopyPath}
               onDownload={onDownload}
               onRefresh={onRefresh}
+              onCut={onCut}
+              onPaste={onPaste}
               renamingItem={renamingItem}
               renameValue={renameValue}
               setRenameValue={setRenameValue}
@@ -231,6 +290,14 @@ export default function FileTreeNode({
               handleCancelRename={handleCancelRename}
               renameInputRef={renameInputRef}
               operationLoading={operationLoading}
+              isCutItem={isCutItem}
+              isDragItem={isDragItem}
+              isHoveredDir={isHoveredDir}
+              onDragStart={onDragStart}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              onDragEnd={onDragEnd}
             />
           ))}
         </div>

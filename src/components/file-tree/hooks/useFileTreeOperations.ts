@@ -2,10 +2,9 @@ import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import JSZip from 'jszip';
 import { api } from '../../../utils/api';
-import type { FileTreeNode } from '../types/types';
+import type { FileTreeNode, FileMoveConflict } from '../types/types';
 import type { Project } from '../../../types/app';
 
-// Invalid filename characters
 const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1f]/;
 const RESERVED_NAMES = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
 
@@ -26,7 +25,6 @@ export type UseFileTreeOperationsOptions = {
 };
 
 export type UseFileTreeOperationsResult = {
-  // Rename operations
   renamingItem: FileTreeNode | null;
   renameValue: string;
   handleStartRename: (item: FileTreeNode) => void;
@@ -34,13 +32,11 @@ export type UseFileTreeOperationsResult = {
   handleConfirmRename: () => Promise<void>;
   setRenameValue: (value: string) => void;
 
-  // Delete operations
   deleteConfirmation: DeleteConfirmation;
   handleStartDelete: (item: FileTreeNode) => void;
   handleCancelDelete: () => void;
   handleConfirmDelete: () => Promise<void>;
 
-  // Create operations
   isCreating: boolean;
   newItemParent: string;
   newItemType: 'file' | 'directory';
@@ -50,15 +46,29 @@ export type UseFileTreeOperationsResult = {
   handleConfirmCreate: () => Promise<void>;
   setNewItemName: (name: string) => void;
 
-  // Other operations
   handleCopyPath: (item: FileTreeNode) => void;
   handleDownload: (item: FileTreeNode) => Promise<void>;
 
-  // Loading state
   operationLoading: boolean;
 
-  // Validation
   validateFilename: (name: string) => string | null;
+
+  dragItem: { path: string; type: 'file' | 'directory' } | null;
+  hoveredDir: string | null;
+  handleDragStart: (e: React.DragEvent, item: FileTreeNode) => void;
+  handleDragOver: (e: React.DragEvent, dirPath: string) => void;
+  handleDragLeave: (dirPath: string) => void;
+  handleDrop: (e: React.DragEvent, targetDir: string) => void;
+  handleDragEnd: () => void;
+
+  cutItem: FileTreeNode | null;
+  handleCut: (item: FileTreeNode) => void;
+  handlePaste: (targetDir: string) => Promise<void>;
+  clearCut: () => void;
+
+  moveConflict: FileMoveConflict;
+  handleMoveFile: (sourcePath: string, destDir: string, overwrite?: boolean) => Promise<void>;
+  resolveConflict: (action: 'overwrite' | 'autoRename' | 'cancel') => Promise<void>;
 };
 
 export function useFileTreeOperations({
@@ -68,7 +78,6 @@ export function useFileTreeOperations({
 }: UseFileTreeOperationsOptions): UseFileTreeOperationsResult {
   const { t } = useTranslation();
 
-  // State
   const [renamingItem, setRenamingItem] = useState<FileTreeNode | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteConfirmation>({
@@ -81,7 +90,18 @@ export function useFileTreeOperations({
   const [newItemName, setNewItemName] = useState('');
   const [operationLoading, setOperationLoading] = useState(false);
 
-  // Validation
+  const [dragItem, setDragItem] = useState<{ path: string; type: 'file' | 'directory' } | null>(null);
+  const [hoveredDir, setHoveredDir] = useState<string | null>(null);
+
+  const [cutItem, setCutItem] = useState<FileTreeNode | null>(null);
+
+  const [moveConflict, setMoveConflict] = useState<FileMoveConflict>({
+    isOpen: false,
+    sourcePath: '',
+    destDir: '',
+    name: '',
+  });
+
   const validateFilename = useCallback((name: string): string | null => {
     if (!name || !name.trim()) {
       return t('fileTree.validation.emptyName', 'Filename cannot be empty');
@@ -98,7 +118,6 @@ export function useFileTreeOperations({
     return null;
   }, [t]);
 
-  // Rename operations
   const handleStartRename = useCallback((item: FileTreeNode) => {
     setRenamingItem(item);
     setRenameValue(item.name);
@@ -146,7 +165,6 @@ export function useFileTreeOperations({
     }
   }, [renamingItem, renameValue, selectedProject, validateFilename, showToast, t, onRefresh, handleCancelRename]);
 
-  // Delete operations
   const handleStartDelete = useCallback((item: FileTreeNode) => {
     setDeleteConfirmation({ isOpen: true, item });
   }, []);
@@ -186,7 +204,6 @@ export function useFileTreeOperations({
     }
   }, [deleteConfirmation, selectedProject, showToast, t, onRefresh, handleCancelDelete]);
 
-  // Create operations
   const handleStartCreate = useCallback((parentPath: string, type: 'file' | 'directory') => {
     setNewItemParent(parentPath || '');
     setNewItemType(type);
@@ -238,14 +255,12 @@ export function useFileTreeOperations({
     }
   }, [selectedProject, newItemParent, newItemType, newItemName, validateFilename, showToast, t, onRefresh, handleCancelCreate]);
 
-  // Copy path to clipboard
   const handleCopyPath = useCallback((item: FileTreeNode) => {
     navigator.clipboard.writeText(item.path)
       .then(() => {
         showToast(t('fileTree.toast.pathCopied', 'Path copied to clipboard'), 'success');
       })
       .catch(() => {
-        // Clipboard API may fail in some contexts (e.g., non-HTTPS)
         showToast(t('fileTree.toast.copyFailed', 'Failed to copy path'), 'error');
       });
   }, [showToast, t]);
@@ -264,17 +279,14 @@ export function useFileTreeOperations({
     URL.revokeObjectURL(url);
   }, []);
 
-  // Download file or folder
   const handleDownload = useCallback(async (item: FileTreeNode) => {
     if (!selectedProject) return;
 
     setOperationLoading(true);
     try {
       if (item.type === 'directory') {
-        // Download folder as ZIP
         await downloadFolderAsZip(item);
       } else {
-        // Download single file
         await downloadSingleFile(item);
       }
     } catch (err) {
@@ -284,11 +296,9 @@ export function useFileTreeOperations({
     }
   }, [selectedProject, showToast]);
 
-  // Download a single file
   const downloadSingleFile = useCallback(async (item: FileTreeNode) => {
     if (!selectedProject) return;
 
-    // Use the binary streaming endpoint so downloads preserve raw bytes.
     const response = await api.readFileBlob(selectedProject.projectId, item.path);
 
     if (!response.ok) {
@@ -299,13 +309,11 @@ export function useFileTreeOperations({
     triggerBrowserDownload(blob, item.name);
   }, [selectedProject, triggerBrowserDownload]);
 
-  // Download folder as ZIP
   const downloadFolderAsZip = useCallback(async (folder: FileTreeNode) => {
     if (!selectedProject) return;
 
     const zip = new JSZip();
 
-    // Recursively get all files in the folder
     const collectFiles = async (node: FileTreeNode, currentPath: string) => {
       const fullPath = currentPath ? `${currentPath}/${node.name}` : node.name;
 
@@ -315,33 +323,181 @@ export function useFileTreeOperations({
           throw new Error(`Failed to download "${node.name}" for ZIP export`);
         }
 
-        // Store raw bytes in the archive so binary files stay intact.
         const fileBytes = await response.arrayBuffer();
         zip.file(fullPath, fileBytes);
       } else if (node.type === 'directory' && node.children) {
-        // Recursively process children
         for (const child of node.children) {
           await collectFiles(child, fullPath);
         }
       }
     };
 
-    // If the folder has children, process them
     if (folder.children && folder.children.length > 0) {
       for (const child of folder.children) {
         await collectFiles(child, '');
       }
     }
 
-    // Generate ZIP file
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     triggerBrowserDownload(zipBlob, `${folder.name}.zip`);
 
     showToast(t('fileTree.toast.folderDownloaded', 'Folder downloaded as ZIP'), 'success');
   }, [selectedProject, showToast, t, triggerBrowserDownload]);
 
+  const isSubPath = (parent: string, child: string): boolean => {
+    return child === parent || child.startsWith(parent + '/');
+  };
+
+  const handleMoveFile = useCallback(async (sourcePath: string, destDir: string, overwrite = false) => {
+    if (!selectedProject) return;
+
+    if (isSubPath(sourcePath, destDir)) {
+      showToast(t('fileTree.toast.circularMove', 'Cannot move into itself'), 'error');
+      return;
+    }
+
+    setOperationLoading(true);
+    try {
+      const response = await api.moveFile(selectedProject.projectId, {
+        sourcePath,
+        destDir,
+        overwrite,
+      });
+
+      if (response.status === 409) {
+        const data = await response.json();
+        if (data.conflict) {
+          setMoveConflict({
+            isOpen: true,
+            sourcePath,
+            destDir,
+            name: data.name,
+          });
+          return;
+        }
+        throw new Error(data.error || 'Move failed');
+      }
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to move');
+      }
+
+      showToast(t('fileTree.toast.moved', 'Moved successfully'), 'success');
+      setCutItem(null);
+      onRefresh();
+    } catch (err) {
+      showToast((err as Error).message, 'error');
+    } finally {
+      setOperationLoading(false);
+    }
+  }, [selectedProject, showToast, t, onRefresh]);
+
+  const resolveConflict = useCallback(async (action: 'overwrite' | 'autoRename' | 'cancel') => {
+    const { sourcePath, destDir, name } = moveConflict;
+    setMoveConflict({ isOpen: false, sourcePath: '', destDir: '', name: '' });
+
+    if (action === 'cancel') return;
+
+    if (action === 'overwrite') {
+      return handleMoveFile(sourcePath, destDir, true);
+    }
+
+    if (action === 'autoRename') {
+      const ext = name.includes('.') ? name.slice(name.lastIndexOf('.')) : '';
+      const base = ext ? name.slice(0, name.lastIndexOf('.')) : name;
+
+      for (let i = 1; i <= 100; i++) {
+        const newName = `${base}_${i}${ext}`;
+        try {
+          if (!selectedProject) return;
+          const response = await api.moveFile(selectedProject.projectId, {
+            sourcePath,
+            destDir,
+            overwrite: false,
+            newName,
+          });
+          if (response.ok) {
+            showToast(t('fileTree.toast.moved', 'Moved successfully'), 'success');
+            setCutItem(null);
+            onRefresh();
+            return;
+          }
+          const data = await response.json();
+          if (!data.conflict) {
+            throw new Error(data.error || 'Move failed');
+          }
+        } catch (err) {
+          showToast((err as Error).message, 'error');
+          return;
+        }
+      }
+      showToast(t('fileTree.toast.renameFailed', 'Could not find available name'), 'error');
+    }
+  }, [moveConflict, selectedProject, showToast, t, onRefresh]);
+
+  const handleDragStart = useCallback((e: React.DragEvent, item: FileTreeNode) => {
+    e.dataTransfer.setData('text/plain', item.path);
+    e.dataTransfer.setData('application/x-item-type', item.type);
+    e.dataTransfer.effectAllowed = 'move';
+    setDragItem({ path: item.path, type: item.type });
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, dirPath: string) => {
+    if (!dragItem) return;
+    if (dragItem.path === dirPath) return;
+    if (dirPath.startsWith(dragItem.path + '/')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setHoveredDir(dirPath);
+  }, [dragItem]);
+
+  const handleDragLeave = useCallback((dirPath: string) => {
+    if (hoveredDir === dirPath) {
+      setHoveredDir(null);
+    }
+  }, [hoveredDir]);
+
+  const handleDrop = useCallback((e: React.DragEvent, targetDir: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setHoveredDir(null);
+
+    const sourcePath = e.dataTransfer.getData('text/plain');
+    const itemType = e.dataTransfer.getData('application/x-item-type');
+
+    if (!sourcePath) return;
+
+    if (sourcePath === targetDir) return;
+
+    const uploadData = e.dataTransfer.types;
+    const isExternalUpload = Array.from(uploadData).includes('Files');
+    if (isExternalUpload) return;
+
+    handleMoveFile(sourcePath, targetDir, false);
+    setDragItem(null);
+  }, [handleMoveFile]);
+
+  const handleDragEnd = useCallback(() => {
+    setDragItem(null);
+    setHoveredDir(null);
+  }, []);
+
+  const handleCut = useCallback((item: FileTreeNode) => {
+    setCutItem(item);
+  }, []);
+
+  const handlePaste = useCallback(async (targetDir: string) => {
+    if (!cutItem || !selectedProject) return;
+
+    await handleMoveFile(cutItem.path, targetDir, false);
+  }, [cutItem, selectedProject, handleMoveFile]);
+
+  const clearCut = useCallback(() => {
+    setCutItem(null);
+  }, []);
+
   return {
-    // Rename operations
     renamingItem,
     renameValue,
     handleStartRename,
@@ -349,13 +505,11 @@ export function useFileTreeOperations({
     handleConfirmRename,
     setRenameValue,
 
-    // Delete operations
     deleteConfirmation,
     handleStartDelete,
     handleCancelDelete,
     handleConfirmDelete,
 
-    // Create operations
     isCreating,
     newItemParent,
     newItemType,
@@ -365,14 +519,28 @@ export function useFileTreeOperations({
     handleConfirmCreate,
     setNewItemName,
 
-    // Other operations
     handleCopyPath,
     handleDownload,
 
-    // Loading state
     operationLoading,
 
-    // Validation
     validateFilename,
+
+    dragItem,
+    hoveredDir,
+    handleDragStart,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleDragEnd,
+
+    cutItem,
+    handleCut,
+    handlePaste,
+    clearCut,
+
+    moveConflict,
+    handleMoveFile,
+    resolveConflict,
   };
 }

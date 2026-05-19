@@ -127,8 +127,23 @@
       "newFile": "Nuovo file",
       "newFolder": "Nuova cartella",
       "refresh": "Aggiorna",
+      "cut": "Taglia",
+      "paste": "Incolla",
       "menuLabel": "Menu contestuale file",
       "loading": "Caricamento..."
+    },
+    "cutItemIndicator": "Tagliato: {{name}}",
+    "conflict": {
+      "title": "Il file esiste già",
+      "message": "\"{{name}}\" esiste già in \"{{dir}}\".",
+      "overwrite": "Sovrascrivi",
+      "autoRename": "Rinomina automaticamente",
+      "cancel": "Annulla"
+    },
+    "toast": {
+      "moved": "Spostato con successo",
+      "circularMove": "Impossibile spostare una cartella dentro se stessa",
+      "renameFailed": "Impossibile trovare un nome disponibile"
     }
   },
   "projectWizard": {

@@ -127,8 +127,23 @@
       "newFile": "새 파일",
       "newFolder": "새 폴더",
       "refresh": "새로 고침",
+      "cut": "잘라내기",
+      "paste": "붙여넣기",
       "menuLabel": "파일 컨텍스트 메뉴",
       "loading": "로딩 중..."
+    },
+    "cutItemIndicator": "잘라내기: {{name}}",
+    "conflict": {
+      "title": "파일이 이미 존재합니다",
+      "message": "\"{{name}}\"이(가) \"{{dir}}\"에 이미 존재합니다.",
+      "overwrite": "덮어쓰기",
+      "autoRename": "자동 이름 변경",
+      "cancel": "취소"
+    },
+    "toast": {
+      "moved": "이동되었습니다",
+      "circularMove": "폴더를 자신 안으로 이동할 수 없습니다",
+      "renameFailed": "사용 가능한 이름을 찾을 수 없습니다"
     }
   },
   "projectWizard": {

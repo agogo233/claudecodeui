@@ -1004,11 +1004,13 @@ export function useChatComposerState({
         const next = previous.filter((request) => !validIds.includes(request.requestId));
         if (next.length === 0) {
           setClaudeStatus(null);
+          setIsLoading(false);
+          setCanAbortSession(false);
         }
         return next;
       });
     },
-    [sendMessage, setClaudeStatus, setPendingPermissionRequests],
+    [sendMessage, setClaudeStatus, setPendingPermissionRequests, setIsLoading, setCanAbortSession],
   );
 
   const [isInputFocused, setIsInputFocused] = useState(false);

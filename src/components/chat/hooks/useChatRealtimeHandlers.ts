@@ -352,6 +352,11 @@ export function useChatRealtimeHandlers({
         d.setIsLoading(true);
         d.setCanAbortSession(true);
         d.setClaudeStatus({ text: 'Waiting for permission', tokens: 0, can_interrupt: true });
+        // permission_request means the backend has completed its current phase
+        // (e.g. plan generation) and is now waiting for user decision.
+        // Remove from processingSessions so the elastic isLoading effect
+        // does not keep the loading indicator active.
+        d.onSessionNotProcessing?.(sid);
         break;
       }
 

@@ -258,6 +258,247 @@ export function useChatComposerState({
         });
         return;
       }
+    }
+
+    const commandContent = content || '';
+    setInput(commandContent);
+    inputValueRef.current = commandContent;
+
+    // Defer submit to next tick so the command text is reflected in UI before dispatching.
+    setTimeout(() => {
+      if (handleSubmitRef.current) {
+        handleSubmitRef.current(createFakeSubmitEvent());
+      }
+    }, 0);
+  }, [addMessage]);
+
+  const executeCommand = useCallback(
+    async (command: SlashCommand, rawInput?: string) => {
+      if (!command || !selectedProject) {
+        return;
+      }
+
+      try {
+        const effectiveInput = rawInput ?? input;
+        const commandMatch = effectiveInput.match(new RegExp(`${escapeRegExp(command.name)}\\s*(.*)`));
+        const args =
+          commandMatch && commandMatch[1] ? commandMatch[1].trim().split(/\s+/) : [];
+
+        // The `/api/commands/execute` context sends `projectId` now instead of
+        // a folder-derived project name; the path is still included verbatim.
+        const context = {
+          projectPath: selectedProject.fullPath || selectedProject.path,
+          projectId: selectedProject.projectId,
+          sessionId: currentSessionId,
+          provider,
+          model: provider === 'cursor' ? cursorModel : provider === 'codex' ? codexModel : provider === 'gemini' ? geminiModel : provider === 'opencode' ? opencodeModel : claudeModel,
+          tokenUsage: tokenBudget,
+        };
+
+        const response = await authenticatedFetch('/api/commands/execute', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            commandName: command.name,
+            commandPath: command.path,
+            args,
+            context,
+          }),
+        });
+
+        if (!response.ok) {
+          let errorMessage = `Failed to execute command (${response.status})`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData?.message || errorData?.error || errorMessage;
+          } catch {
+            // Ignore JSON parse failures and use fallback message.
+          }
+          throw new Error(errorMessage);
+        }
+
+        const result = (await response.json()) as CommandExecutionResult;
+        if (result.type === 'builtin') {
+          handleBuiltInCommand(result);
+          setInput('');
+          inputValueRef.current = '';
+        } else if (result.type === 'custom') {
+          await handleCustomCommand(result);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Error executing command:', error);
+        addMessage({
+          type: 'assistant',
+          content: `Error executing command: ${message}`,
+          timestamp: Date.now(),
+        });
+      }
+    },
+    [
+      claudeModel,
+      codexModel,
+      currentSessionId,
+      cursorModel,
+      geminiModel,
+      handleBuiltInCommand,
+      handleCustomCommand,
+      input,
+      provider,
+      selectedProject,
+      addMessage,
+      tokenBudget,
+    ],
+  );
+
+  const {
+    slashCommands,
+    slashCommandsCount,
+    filteredCommands,
+    frequentCommands,
+    commandQuery,
+    showCommandMenu,
+    selectedCommandIndex,
+    resetCommandMenuState,
+    handleCommandSelect,
+    handleToggleCommandMenu,
+    handleCommandInputChange,
+    handleCommandMenuKeyDown,
+  } = useSlashCommands({
+    selectedProject,
+    provider,
+    input,
+    setInput,
+    textareaRef,
+    onExecuteCommand: executeCommand,
+  });
+
+  const {
+    showFileDropdown,
+    filteredFiles,
+    selectedFileIndex,
+    renderInputWithMentions,
+    selectFile,
+    setCursorPosition,
+    handleFileMentionsKeyDown,
+  } = useFileMentions({
+    selectedProject,
+    input,
+    setInput,
+    textareaRef,
+  });
+
+  const syncInputOverlayScroll = useCallback((target: HTMLTextAreaElement) => {
+    if (!inputHighlightRef.current || !target) {
+      return;
+    }
+    inputHighlightRef.current.scrollTop = target.scrollTop;
+    inputHighlightRef.current.scrollLeft = target.scrollLeft;
+  }, []);
+
+  const handleImageFiles = useCallback((files: File[]) => {
+    const validFiles = files.filter((file) => {
+      try {
+        if (!file || typeof file !== 'object') {
+          console.warn('Invalid file object:', file);
+          return false;
+        }
+
+        if (!file.type || !file.type.startsWith('image/')) {
+          return false;
+        }
+
+        if (!file.size || file.size > 5 * 1024 * 1024) {
+          const fileName = file.name || 'Unknown file';
+          setImageErrors((previous) => {
+            const next = new Map(previous);
+            next.set(fileName, 'File too large (max 5MB)');
+            return next;
+          });
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Error validating file:', error, file);
+        return false;
+      }
+    });
+
+    if (validFiles.length > 0) {
+      setAttachedImages((previous) => [...previous, ...validFiles].slice(0, 5));
+    }
+  }, []);
+
+  const handlePaste = useCallback(
+    (event: ClipboardEvent<HTMLTextAreaElement>) => {
+      const items = Array.from(event.clipboardData.items);
+
+      items.forEach((item) => {
+        if (!item.type.startsWith('image/')) {
+          return;
+        }
+        const file = item.getAsFile();
+        if (file) {
+          handleImageFiles([file]);
+        }
+      });
+
+      if (items.length === 0 && event.clipboardData.files.length > 0) {
+        const files = Array.from(event.clipboardData.files);
+        const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+        if (imageFiles.length > 0) {
+          handleImageFiles(imageFiles);
+        }
+      }
+    },
+    [handleImageFiles],
+  );
+
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    accept: {
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'],
+    },
+    maxSize: 5 * 1024 * 1024,
+    maxFiles: 5,
+    onDrop: handleImageFiles,
+    noClick: true,
+    noKeyboard: true,
+  });
+
+  const handleSubmit = useCallback(
+    async (
+      event: FormEvent<HTMLFormElement> | MouseEvent | TouchEvent | KeyboardEvent<HTMLTextAreaElement>,
+    ) => {
+      event.preventDefault();
+      const currentInput = inputValueRef.current;
+      if (!currentInput.trim() || isLoading || !selectedProject) {
+        return;
+      }
+
+      // Intercept slash commands only when "/" is the first input character.
+      const commandInput = currentInput.trimEnd();
+      if (commandInput.startsWith('/')) {
+        const firstSpace = commandInput.indexOf(' ');
+        const commandName = firstSpace > 0 ? commandInput.slice(0, firstSpace) : commandInput;
+        const matchedCommand = slashCommands.find((cmd: SlashCommand) => cmd.name === commandName);
+        if (matchedCommand && matchedCommand.type !== 'skill') {
+          executeCommand(matchedCommand, commandInput);
+          setInput('');
+          inputValueRef.current = '';
+          setAttachedImages([]);
+          setUploadingImages(new Map());
+          setImageErrors(new Map());
+          resetCommandMenuState();
+          setIsTextareaExpanded(false);
+          if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+          }
+          return;
+        }
+      }
 
       // Prevent concurrent submissions via synchronous ref lock
       if (submittingRef.current) return;

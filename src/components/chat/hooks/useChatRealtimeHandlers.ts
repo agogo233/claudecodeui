@@ -254,6 +254,9 @@ export function useChatRealtimeHandlers({
         const newSessionId = msg.newSessionId;
         if (!newSessionId) break;
         if (!d.currentSessionId) {
+          if (sid && sid !== newSessionId) {
+            d.sessionStore.replaceSessionId(sid, newSessionId);
+          }
           sessionStorage.setItem('pendingSessionId', newSessionId);
           if (d.pendingViewSessionRef.current && !d.pendingViewSessionRef.current.sessionId) {
             d.pendingViewSessionRef.current.sessionId = newSessionId;

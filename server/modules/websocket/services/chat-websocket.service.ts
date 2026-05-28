@@ -256,18 +256,7 @@ export function handleChatConnection(
         return;
       }
 
-      if (messageType === 'get-active-sessions') {
-        writer.send({
-          type: 'active-sessions',
-          sessions: {
-            claude: dependencies.getActiveClaudeSDKSessions(),
-            cursor: dependencies.getActiveCursorSessions(),
-            codex: dependencies.getActiveCodexSessions(),
-            gemini: dependencies.getActiveGeminiSessions(),
-            opencode: dependencies.getActiveOpencodeSessions(),
-          },
-        });
-      }
+
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error('[ERROR] Chat WebSocket error:', message);

@@ -144,7 +144,7 @@ router.post(
   }),
 );
 
-router.get('/clone-progress', async (req, res) => {
+router.get('/clone-progress', asyncHandler(async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -157,6 +157,11 @@ router.get('/clone-progress', async (req, res) => {
 
     res.write(`data: ${JSON.stringify({ type, ...data })}\n\n`);
   };
+
+  const refreshedToken = res.getHeader('X-Refreshed-Token');
+  if (typeof refreshedToken === 'string') {
+    sendEvent('token-refresh', { token: refreshedToken });
+  }
 
   let cloneOperation: Awaited<ReturnType<typeof startCloneProject>> | null = null;
   const closeListener = () => {
@@ -207,7 +212,7 @@ router.get('/clone-progress', async (req, res) => {
       res.end();
     }
   }
-});
+}));
 
 router.get(
   '/:projectId/taskmaster',

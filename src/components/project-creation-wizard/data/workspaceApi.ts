@@ -175,12 +175,22 @@ export const cloneWorkspaceWithProgress = (
         if (payload.type === 'error') {
           settle(() => reject(new Error(payload.message || 'Failed to clone repository')));
         }
+
+        if (payload.type === 'token-refresh' && payload.token) {
+          localStorage.setItem('auth-token', payload.token as string);
+        }
       } catch (error) {
         console.error('Error parsing clone progress event:', error);
       }
     };
 
     eventSource.onerror = () => {
-      settle(() => reject(new Error('Connection lost during clone')));
+      settle(() => {
+        if (eventSource.readyState === EventSource.CONNECTING) {
+          reject(new Error('Authentication failed — please log in again'));
+        } else {
+          reject(new Error('Connection lost during clone'));
+        }
+      });
     };
   });

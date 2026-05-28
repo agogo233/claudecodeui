@@ -55,6 +55,7 @@ export type CloneProgressEvent = {
   type?: string;
   message?: string;
   project?: Record<string, unknown>;
+  token?: string;
 };
 
 export type WizardFormState = {

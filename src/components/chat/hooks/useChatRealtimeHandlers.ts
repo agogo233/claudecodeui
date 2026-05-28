@@ -170,16 +170,6 @@ export function useChatRealtimeHandlers({
         case 'session-status': {
           const statusSessionId = msg.sessionId;
           if (!statusSessionId) return;
-          if (msg.status) {
-            d.setClaudeStatus({
-              text: msg.status.text || 'Working...',
-              tokens: msg.status.tokens || 0,
-              can_interrupt: msg.status.can_interrupt !== undefined ? msg.status.can_interrupt : true,
-            });
-            d.setIsLoading(true);
-            d.setCanAbortSession(msg.status.can_interrupt !== false);
-            return;
-          }
           const isCurrentSession = statusSessionId === d.currentSessionId || (d.selectedSession && statusSessionId === d.selectedSession.id);
           if (msg.isProcessing) {
             d.onSessionProcessing?.(statusSessionId);

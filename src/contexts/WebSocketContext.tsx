@@ -37,6 +37,7 @@ const useWebSocketProviderState = (): WebSocketContextType => {
   const [latestMessage, setLatestMessage] = useState<any>(null);
   const [isConnected, setIsConnected] = useState(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptRef = useRef(0);
   const { token } = useAuth();
 
   const messageQueueRef = useRef<any[]>([]);
@@ -59,6 +60,7 @@ const useWebSocketProviderState = (): WebSocketContextType => {
   }, []);
 
   useEffect(() => {
+    unmountedRef.current = false;
     connect();
     return () => {
       unmountedRef.current = true;
@@ -82,6 +84,7 @@ const useWebSocketProviderState = (): WebSocketContextType => {
       websocket.onopen = () => {
         setIsConnected(true);
         wsRef.current = websocket;
+        reconnectAttemptRef.current = 0;
         if (hasConnectedRef.current) {
           const reconnectMsg = { type: 'websocket-reconnected', timestamp: Date.now() };
           setLatestMessage(reconnectMsg);
@@ -105,10 +108,16 @@ const useWebSocketProviderState = (): WebSocketContextType => {
       websocket.onclose = () => {
         setIsConnected(false);
         wsRef.current = null;
+        const RECONNECT_BASE = 1000;
+        const RECONNECT_MAX = 30000;
+        const attempt = reconnectAttemptRef.current;
+        const delay = Math.min(RECONNECT_BASE * Math.pow(2, attempt), RECONNECT_MAX);
+        const jitter = delay * (0.5 + Math.random() * 0.5);
+        reconnectAttemptRef.current = attempt + 1;
         reconnectTimeoutRef.current = setTimeout(() => {
           if (unmountedRef.current) return;
           connect();
-        }, 3000);
+        }, jitter);
       };
 
       websocket.onerror = (error) => {

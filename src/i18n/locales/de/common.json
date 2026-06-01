@@ -143,7 +143,9 @@
     "toast": {
       "moved": "Erfolgreich verschoben",
       "circularMove": "Ordner kann nicht in sich selbst verschoben werden",
-      "renameFailed": "Kein verfügbarer Name gefunden"
+      "renameFailed": "Kein verfügbarer Name gefunden",
+      "pathCopied": "Pfad in die Zwischenablage kopiert",
+      "copyFailed": "Kopieren des Pfads fehlgeschlagen"
     }
   },
   "projectWizard": {

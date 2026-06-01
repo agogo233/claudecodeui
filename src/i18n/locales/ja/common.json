@@ -143,7 +143,9 @@
     "toast": {
       "moved": "移動しました",
       "circularMove": "フォルダをそれ自体の中に移動できません",
-      "renameFailed": "利用可能な名前が見つかりませんでした"
+      "renameFailed": "利用可能な名前が見つかりませんでした",
+      "pathCopied": "パスをクリップボードにコピーしました",
+      "copyFailed": "パスのコピーに失敗しました"
     }
   },
   "projectWizard": {

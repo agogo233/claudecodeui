@@ -143,7 +143,9 @@
     "toast": {
       "moved": "Spostato con successo",
       "circularMove": "Impossibile spostare una cartella dentro se stessa",
-      "renameFailed": "Impossibile trovare un nome disponibile"
+      "renameFailed": "Impossibile trovare un nome disponibile",
+      "pathCopied": "Percorso copiato negli appunti",
+      "copyFailed": "Copia del percorso fallita"
     }
   },
   "projectWizard": {

@@ -143,7 +143,9 @@
     "toast": {
       "moved": "Başarıyla taşındı",
       "circularMove": "Bir klasör kendi içine taşınamaz",
-      "renameFailed": "Uygun bir ad bulunamadı"
+      "renameFailed": "Uygun bir ad bulunamadı",
+      "pathCopied": "Yol panoya kopyalandı",
+      "copyFailed": "Yol kopyalanamadı"
     }
   },
   "projectWizard": {

@@ -143,7 +143,9 @@
     "toast": {
       "moved": "移动成功",
       "circularMove": "不能将文件夹移动到自身内部",
-      "renameFailed": "无法找到可用名称"
+      "renameFailed": "无法找到可用名称",
+      "pathCopied": "路径已复制到剪贴板",
+      "copyFailed": "复制路径失败"
     }
   },
   "projectWizard": {

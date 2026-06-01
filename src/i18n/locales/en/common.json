@@ -143,7 +143,9 @@
     "toast": {
       "moved": "Moved successfully",
       "circularMove": "Cannot move a folder into itself",
-      "renameFailed": "Could not find an available name"
+      "renameFailed": "Could not find an available name",
+      "pathCopied": "Path copied to clipboard",
+      "copyFailed": "Failed to copy path"
     }
   },
   "projectWizard": {

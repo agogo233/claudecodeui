@@ -1,24 +1,25 @@
-import React from 'react';
-
 type OpenCodeLogoProps = {
   className?: string;
 };
 
-const OpenCodeLogo = ({ className = 'w-5 h-5' }: OpenCodeLogoProps) => {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
+const OpenCodeLogo = ({ className = 'w-5 h-5' }: OpenCodeLogoProps) => (
+  <svg
+    viewBox="0 0 24 24"
+    role="img"
+    aria-label="OpenCode"
+    className={className}
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect x="2.5" y="2.5" width="19" height="19" rx="4" className="fill-foreground" />
+    <path
+      d="M8.1 8.1 4.9 12l3.2 3.9M15.9 8.1l3.2 3.9-3.2 3.9M13.2 6.9l-2.4 10.2"
+      className="stroke-background"
+      strokeWidth="1.9"
       strokeLinecap="round"
       strokeLinejoin="round"
-    >
-      <polyline points="4 17 10 11 4 5" />
-      <line x1="12" y1="19" x2="20" y2="19" />
-    </svg>
-  );
-};
+    />
+  </svg>
+);
 
 export default OpenCodeLogo;

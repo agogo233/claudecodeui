@@ -1,9 +1,16 @@
 import { useTranslation } from 'react-i18next';
 import { useCallback, useRef } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
+
 import type { ChatMessage } from '../../types/types';
-import type { Project, ProjectSession, LLMProvider } from '../../../../types/app';
+import type {
+  Project,
+  ProjectSession,
+  LLMProvider,
+  ProviderModelsDefinition,
+} from '../../../../types/app';
 import { getIntrinsicMessageKey } from '../../utils/messageKeys';
+
 import MessageComponent from './MessageComponent';
 import ProviderSelectionEmptyState from './ProviderSelectionEmptyState';
 
@@ -27,7 +34,9 @@ interface ChatMessagesPaneProps {
   geminiModel: string;
   setGeminiModel: (model: string) => void;
   opencodeModel: string;
-  setOpencodeModel: (model: string) => void;
+  setOpenCodeModel: (model: string) => void;
+  providerModelCatalog: Partial<Record<LLMProvider, ProviderModelsDefinition>>;
+  providerModelsLoading: boolean;
   tasksEnabled: boolean;
   isTaskMasterInstalled: boolean | null;
   onShowAllTasks?: (() => void) | null;
@@ -74,7 +83,9 @@ export default function ChatMessagesPane({
   geminiModel,
   setGeminiModel,
   opencodeModel,
-  setOpencodeModel,
+  setOpenCodeModel,
+  providerModelCatalog,
+  providerModelsLoading,
   tasksEnabled,
   isTaskMasterInstalled,
   onShowAllTasks,
@@ -159,7 +170,9 @@ export default function ChatMessagesPane({
           geminiModel={geminiModel}
           setGeminiModel={setGeminiModel}
           opencodeModel={opencodeModel}
-          setOpencodeModel={setOpencodeModel}
+          setOpenCodeModel={setOpenCodeModel}
+          providerModelCatalog={providerModelCatalog}
+          providerModelsLoading={providerModelsLoading}
           tasksEnabled={tasksEnabled}
           isTaskMasterInstalled={isTaskMasterInstalled}
           onShowAllTasks={onShowAllTasks}

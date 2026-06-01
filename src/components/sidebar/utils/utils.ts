@@ -85,7 +85,7 @@ export const createSessionViewModel = (
     isCursorSession: session.__provider === 'cursor',
     isCodexSession: session.__provider === 'codex',
     isGeminiSession: session.__provider === 'gemini',
-    isOpencodeSession: session.__provider === 'opencode',
+    isOpenCodeSession: session.__provider === 'opencode',
     isActive: diffInMinutes < 10,
     sessionName: getSessionName(session, t),
     sessionTime: getSessionTime(session),

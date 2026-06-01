@@ -29,12 +29,12 @@ type ChatWebSocketDependencies = {
   spawnCursor: (command: string, options: unknown, writer: WebSocketWriter) => Promise<unknown>;
   queryCodex: (command: string, options: unknown, writer: WebSocketWriter) => Promise<unknown>;
   spawnGemini: (command: string, options: unknown, writer: WebSocketWriter) => Promise<unknown>;
-  spawnOpencode: (command: string, options: unknown, writer: WebSocketWriter) => Promise<unknown>;
+  spawnOpenCode: (command: string, options: unknown, writer: WebSocketWriter) => Promise<unknown>;
   abortClaudeSDKSession: (sessionId: string) => Promise<boolean>;
   abortCursorSession: (sessionId: string) => boolean;
   abortCodexSession: (sessionId: string) => boolean;
   abortGeminiSession: (sessionId: string) => boolean;
-  abortOpencodeSession: (sessionId: string) => boolean;
+  abortOpenCodeSession: (sessionId: string) => boolean;
   resolveToolApproval: (
     requestId: string,
     payload: {
@@ -48,14 +48,14 @@ type ChatWebSocketDependencies = {
   isCursorSessionActive: (sessionId: string) => boolean;
   isCodexSessionActive: (sessionId: string) => boolean;
   isGeminiSessionActive: (sessionId: string) => boolean;
-  isOpencodeSessionActive: (sessionId: string) => boolean;
+  isOpenCodeSessionActive: (sessionId: string) => boolean;
   reconnectSessionWriter: (sessionId: string, ws: WebSocket) => boolean;
   getPendingApprovalsForSession: (sessionId: string) => unknown[];
   getActiveClaudeSDKSessions: () => unknown;
   getActiveCursorSessions: () => unknown;
   getActiveCodexSessions: () => unknown;
   getActiveGeminiSessions: () => unknown;
-  getActiveOpencodeSessions: () => unknown;
+  getActiveOpenCodeSessions: () => unknown;
 };
 
 /**
@@ -139,7 +139,7 @@ export function handleChatConnection(
       }
 
       if (messageType === 'opencode-command') {
-        await dependencies.spawnOpencode(data.command ?? '', data.options, writer);
+        await dependencies.spawnOpenCode(data.command ?? '', data.options, writer);
         return;
       }
 
@@ -168,7 +168,7 @@ export function handleChatConnection(
         } else if (provider === 'gemini') {
           success = dependencies.abortGeminiSession(sessionId);
         } else if (provider === 'opencode') {
-          success = dependencies.abortOpencodeSession(sessionId);
+          success = dependencies.abortOpenCodeSession(sessionId);
         } else {
           success = await dependencies.abortClaudeSDKSession(sessionId);
         }
@@ -226,7 +226,7 @@ export function handleChatConnection(
         } else if (provider === 'gemini') {
           isActive = dependencies.isGeminiSessionActive(sessionId);
         } else if (provider === 'opencode') {
-          isActive = dependencies.isOpencodeSessionActive(sessionId);
+          isActive = dependencies.isOpenCodeSessionActive(sessionId);
         } else {
           isActive = dependencies.isClaudeSDKSessionActive(sessionId);
           if (isActive) {
@@ -256,7 +256,18 @@ export function handleChatConnection(
         return;
       }
 
-
+      if (messageType === 'get-active-sessions') {
+        writer.send({
+          type: 'active-sessions',
+          sessions: {
+            claude: dependencies.getActiveClaudeSDKSessions(),
+            cursor: dependencies.getActiveCursorSessions(),
+            codex: dependencies.getActiveCodexSessions(),
+            gemini: dependencies.getActiveGeminiSessions(),
+            opencode: dependencies.getActiveOpenCodeSessions(),
+          },
+        });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error('[ERROR] Chat WebSocket error:', message);

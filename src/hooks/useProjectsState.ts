@@ -604,7 +604,7 @@ export function useProjectsState({
             ? 'gemini'
             : providerFromStorage === 'opencode'
               ? 'opencode'
-              : 'claude';
+            : 'claude';
 
     setSelectedSession({
       id: sessionId,

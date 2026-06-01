@@ -37,8 +37,8 @@ export const SETTINGS_MAIN_TABS: SettingsMainTabMeta[] = [
   { id: 'about', label: 'About', keywords: 'about version info', icon: Info },
 ];
 
-export const AGENT_PROVIDERS: AgentProvider[] = ['claude', 'cursor', 'codex', 'gemini'];
-export const AGENT_CATEGORIES: AgentCategory[] = ['account', 'permissions', 'mcp', 'models'];
+export const AGENT_PROVIDERS: AgentProvider[] = ['claude', 'cursor', 'codex', 'gemini', 'opencode'];
+export const AGENT_CATEGORIES: AgentCategory[] = ['account', 'permissions', 'mcp'];
 
 export const DEFAULT_PROJECT_SORT_ORDER: ProjectSortOrder = 'name';
 export const DEFAULT_SAVE_STATUS = null;

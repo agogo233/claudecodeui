@@ -14,10 +14,10 @@ import { useSessionStore } from '../../../stores/useSessionStore';
 
 import ChatMessagesPane from './subcomponents/ChatMessagesPane';
 import ChatComposer from './subcomponents/ChatComposer';
+import CommandResultModal from './subcomponents/CommandResultModal';
 
 
 type PendingViewSession = {
-  sessionId: string | null;
   startedAt: number;
 };
 
@@ -73,20 +73,25 @@ function ChatInterface({
     geminiModel,
     setGeminiModel,
     opencodeModel,
-    setOpencodeModel,
+    setOpenCodeModel,
     permissionMode,
     pendingPermissionRequests,
     setPendingPermissionRequests,
     cyclePermissionMode,
+    providerModelCatalog,
+    providerModelCacheCatalog,
+    providerModelsLoading,
+    providerModelsRefreshing,
+    hardRefreshProviderModels,
+    selectProviderModel,
   } = useChatProviderState({
     selectedSession,
+    selectedProject,
   });
 
   const {
     chatMessages,
     addMessage,
-    clearMessages,
-    rewindMessages,
     isLoading,
     setIsLoading,
     currentSessionId,
@@ -172,7 +177,9 @@ function ChatInterface({
     handlePermissionDecision,
     handleGrantToolPermission,
     handleInputFocusChange,
-    isInputFocused,
+    isInputFocused: _isInputFocused,
+    commandModalPayload,
+    closeCommandModal,
   } = useChatComposerState({
     selectedProject,
     selectedSession,
@@ -198,8 +205,6 @@ function ChatInterface({
     pendingViewSessionRef,
     scrollToBottom,
     addMessage,
-    clearMessages,
-    rewindMessages,
     setIsLoading,
     setCanAbortSession,
     setClaudeStatus,
@@ -237,6 +242,7 @@ function ChatInterface({
     streamTimerRef,
     accumulatedStreamRef,
     onSessionInactive,
+    onSessionActive,
     onSessionProcessing,
     onSessionNotProcessing,
     onNavigateToSession,
@@ -284,8 +290,8 @@ function ChatInterface({
           : provider === 'gemini'
             ? t('messageTypes.gemini')
             : provider === 'opencode'
-              ? t('messageTypes.opencode')
-              : t('messageTypes.claude');
+              ? t('messageTypes.opencode', { defaultValue: 'OpenCode' })
+            : t('messageTypes.claude');
 
     return (
       <div className="flex h-full items-center justify-center">
@@ -324,7 +330,9 @@ function ChatInterface({
           geminiModel={geminiModel}
           setGeminiModel={setGeminiModel}
           opencodeModel={opencodeModel}
-          setOpencodeModel={setOpencodeModel}
+          setOpenCodeModel={setOpenCodeModel}
+          providerModelCatalog={providerModelCatalog}
+          providerModelsLoading={providerModelsLoading}
           tasksEnabled={tasksEnabled}
           isTaskMasterInstalled={isTaskMasterInstalled}
           onShowAllTasks={onShowAllTasks}
@@ -414,8 +422,8 @@ function ChatInterface({
                   : provider === 'gemini'
                     ? t('messageTypes.gemini')
                     : provider === 'opencode'
-                      ? t('messageTypes.opencode')
-                      : t('messageTypes.claude'),
+                      ? t('messageTypes.opencode', { defaultValue: 'OpenCode' })
+                    : t('messageTypes.claude'),
           })}
           isTextareaExpanded={isTextareaExpanded}
           sendByCtrlEnter={sendByCtrlEnter}
@@ -423,6 +431,17 @@ function ChatInterface({
       </div>
 
       <QuickSettingsPanel />
+
+      <CommandResultModal
+        payload={commandModalPayload}
+        onClose={closeCommandModal}
+        providerModelCatalog={providerModelCatalog}
+        providerModelCacheCatalog={providerModelCacheCatalog}
+        providerModelsRefreshing={providerModelsRefreshing}
+        onHardRefreshProviderModels={hardRefreshProviderModels}
+        currentSessionId={currentSessionId || selectedSession?.id || null}
+        onSelectProviderModel={selectProviderModel}
+      />
     </PermissionContext.Provider>
   );
 }

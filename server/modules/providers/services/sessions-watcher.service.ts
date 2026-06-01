@@ -11,11 +11,6 @@ import { getProjectsWithSessions } from '@/modules/projects/index.js';
 
 type WatcherEventType = 'add' | 'change';
 
-function opencodeDataDir(): string {
-  const xdgData = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
-  return path.join(xdgData, 'opencode');
-}
-
 const PROVIDER_WATCH_PATHS: Array<{ provider: LLMProvider; rootPath: string }> = [
   {
     provider: 'claude',
@@ -41,7 +36,7 @@ const PROVIDER_WATCH_PATHS: Array<{ provider: LLMProvider; rootPath: string }> =
   },
   {
     provider: 'opencode',
-    rootPath: opencodeDataDir(),
+    rootPath: path.join(os.homedir(), '.local', 'share', 'opencode'),
   },
 ];
 
@@ -76,12 +71,12 @@ let watcherRescheduleAfterRefresh = false;
  * Filters watcher events to provider-specific session artifact file types.
  */
 function isWatcherTargetFile(provider: LLMProvider, filePath: string): boolean {
-  if (provider === 'gemini') {
-    return filePath.endsWith('.json') || filePath.endsWith('.jsonl');
+  if (provider === 'opencode') {
+    return path.basename(filePath) === 'opencode.db';
   }
 
-  if (provider === 'opencode') {
-    return /^opencode(-[a-zA-Z0-9]+)?\.db$/.test(path.basename(filePath));
+  if (provider === 'gemini') {
+    return filePath.endsWith('.json') || filePath.endsWith('.jsonl');
   }
 
   return filePath.endsWith('.jsonl');

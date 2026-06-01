@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 
-import { useWebSocket } from '../../../contexts/WebSocketContext';
 import { usePaletteOps } from '../../../contexts/PaletteOpsContext';
 import type { PendingPermissionRequest, SessionNavigationOptions } from '../types/types';
 import type { ProjectSession, LLMProvider } from '../../../types/app';
 import type { SessionStore, NormalizedMessage } from '../../../stores/useSessionStore';
 
 type PendingViewSession = {
-  sessionId: string | null;
   startedAt: number;
 };
 
@@ -64,6 +62,7 @@ interface UseChatRealtimeHandlersArgs {
   streamTimerRef: MutableRefObject<number | null>;
   accumulatedStreamRef: MutableRefObject<string>;
   onSessionInactive?: (sessionId?: string | null) => void;
+  onSessionActive?: (sessionId?: string | null) => void;
   onSessionProcessing?: (sessionId?: string | null) => void;
   onSessionNotProcessing?: (sessionId?: string | null) => void;
   onNavigateToSession?: (sessionId: string, options?: SessionNavigationOptions) => void;
@@ -71,19 +70,9 @@ interface UseChatRealtimeHandlersArgs {
   sessionStore: SessionStore;
 }
 
-function computeMessageKey(msg: LatestChatMessage): string {
-  return `${msg.kind}_${msg.id || ''}_${msg.sessionId || msg.session_id || ''}_${msg.timestamp || ''}`;
-}
-
-function getSid(msg: LatestChatMessage, activeViewSessionId: string | null, pendingViewSessionRef: MutableRefObject<PendingViewSession | null>, currentSessionId: string | null): string | null {
-  return msg.sessionId
-    || msg.session_id
-    || activeViewSessionId
-    || pendingViewSessionRef.current?.sessionId
-    || currentSessionId
-    || (typeof window !== 'undefined' ? sessionStorage.getItem('pendingSessionId') : null)
-    || null;
-}
+/* ------------------------------------------------------------------ */
+/*  Hook                                                              */
+/* ------------------------------------------------------------------ */
 
 export function useChatRealtimeHandlers({
   latestMessage,
@@ -100,6 +89,7 @@ export function useChatRealtimeHandlers({
   streamTimerRef,
   accumulatedStreamRef,
   onSessionInactive,
+  onSessionActive,
   onSessionProcessing,
   onSessionNotProcessing,
   onNavigateToSession,
@@ -107,228 +97,234 @@ export function useChatRealtimeHandlers({
   sessionStore,
 }: UseChatRealtimeHandlersArgs) {
   const paletteOps = usePaletteOps();
-  const { subscribeMessageQueue, drainMessageQueue } = useWebSocket();
+  const lastProcessedMessageRef = useRef<LatestChatMessage | null>(null);
 
-  /* ------------------------------------------------------------------ */
-  /*  Stable refs to avoid stale closures in queue/rAF callbacks         */
-  /* ------------------------------------------------------------------ */
+  useEffect(() => {
+    if (!latestMessage) return;
+    if (lastProcessedMessageRef.current === latestMessage) return;
+    lastProcessedMessageRef.current = latestMessage;
 
-  const depsRef = useRef({
-    provider,
-    selectedSession,
-    currentSessionId,
-    setCurrentSessionId,
-    setIsLoading,
-    setCanAbortSession,
-    setClaudeStatus,
-    setTokenBudget,
-    setPendingPermissionRequests,
-    pendingViewSessionRef,
-    streamTimerRef,
-    accumulatedStreamRef,
-    onSessionInactive,
-    onSessionProcessing,
-    onSessionNotProcessing,
+    const activeViewSessionId =
+      selectedSession?.id || currentSessionId || null;
 
-    onNavigateToSession,
-    onWebSocketReconnect,
-    sessionStore,
-    paletteOps,
-  });
-  depsRef.current = {
-    provider, selectedSession, currentSessionId, setCurrentSessionId,
-    setIsLoading, setCanAbortSession, setClaudeStatus, setTokenBudget,
-    setPendingPermissionRequests, pendingViewSessionRef, streamTimerRef,
-    accumulatedStreamRef, onSessionInactive, onSessionProcessing,
-    onSessionNotProcessing, onNavigateToSession, onWebSocketReconnect,
-    sessionStore, paletteOps,
-  };
+    /* ---------------------------------------------------------------- */
+    /*  Legacy messages (no `kind` field) — handle and return           */
+    /* ---------------------------------------------------------------- */
 
-  /* ------------------------------------------------------------------ */
-  /*  Process one message                                                */
-  /* ------------------------------------------------------------------ */
+    const msg = latestMessage as any;
 
-  const processMessageRef = useRef<(msg: LatestChatMessage) => void>();
-  processMessageRef.current = (msg: LatestChatMessage) => {
-    const d = depsRef.current;
-    const activeViewSessionId = d.selectedSession?.id || d.currentSessionId || d.pendingViewSessionRef.current?.sessionId || null;
-
-    /* --- Legacy messages (no `kind` field) --- */
     if (!msg.kind) {
       const messageType = String(msg.type || '');
+
       switch (messageType) {
         case 'websocket-reconnected':
-          d.onWebSocketReconnect?.();
+          onWebSocketReconnect?.();
           return;
+
         case 'pending-permissions-response': {
           const permSessionId = msg.sessionId;
-          const isCurrentPermSession = permSessionId === d.currentSessionId || (d.selectedSession && permSessionId === d.selectedSession.id);
+          const isCurrentPermSession =
+            permSessionId === currentSessionId || (selectedSession && permSessionId === selectedSession.id);
           if (permSessionId && !isCurrentPermSession) return;
-          d.setPendingPermissionRequests(msg.data || []);
+          setPendingPermissionRequests(msg.data || []);
           return;
         }
+
         case 'session-status': {
           const statusSessionId = msg.sessionId;
           if (!statusSessionId) return;
-          const isCurrentSession = statusSessionId === d.currentSessionId || (d.selectedSession && statusSessionId === d.selectedSession.id);
-          if (msg.isProcessing) {
-            d.onSessionProcessing?.(statusSessionId);
-            if (isCurrentSession) { d.setIsLoading(true); d.setCanAbortSession(true); }
+
+          const status = msg.status;
+          if (status) {
+            const statusInfo = {
+              text: status.text || 'Working...',
+              tokens: status.tokens || 0,
+              can_interrupt: status.can_interrupt !== undefined ? status.can_interrupt : true,
+            };
+            setClaudeStatus(statusInfo);
+            setIsLoading(true);
+            setCanAbortSession(statusInfo.can_interrupt);
             return;
           }
-          d.onSessionInactive?.(statusSessionId);
-          d.onSessionNotProcessing?.(statusSessionId);
+
+          // Legacy isProcessing format from check-session-status
+          const isCurrentSession =
+            statusSessionId === currentSessionId || (selectedSession && statusSessionId === selectedSession.id);
+
+          if (msg.isProcessing) {
+            onSessionActive?.(statusSessionId);
+            onSessionProcessing?.(statusSessionId);
+            if (isCurrentSession) { setIsLoading(true); setCanAbortSession(true); }
+            return;
+          }
+
+          onSessionInactive?.(statusSessionId);
+          onSessionNotProcessing?.(statusSessionId);
           if (isCurrentSession) {
-            d.setIsLoading(false);
-            d.setCanAbortSession(false);
-            d.setClaudeStatus(null);
+            setIsLoading(false);
+            setCanAbortSession(false);
+            setClaudeStatus(null);
           }
           return;
         }
+
         default:
+          // Unknown legacy message type — ignore
           return;
       }
     }
 
-    /* --- NormalizedMessage handling --- */
-    const sid = getSid(msg, activeViewSessionId, d.pendingViewSessionRef, d.currentSessionId);
+    /* ---------------------------------------------------------------- */
+    /*  NormalizedMessage handling (has `kind` field)                    */
+    /* ---------------------------------------------------------------- */
 
-    // --- Streaming: rAF-driven (replaces setTimeout(100)) ---
+    const sid = msg.sessionId || activeViewSessionId;
+
+    // --- Streaming: buffer for performance ---
     if (msg.kind === 'stream_delta') {
       const text = msg.content || '';
       if (!text) return;
-      d.accumulatedStreamRef.current += text;
-      if (d.streamTimerRef.current === null) {
-        d.streamTimerRef.current = requestAnimationFrame(() => {
-          d.streamTimerRef.current = null;
+      accumulatedStreamRef.current += text;
+      if (!streamTimerRef.current) {
+        streamTimerRef.current = window.setTimeout(() => {
+          streamTimerRef.current = null;
           if (sid) {
-            d.sessionStore.updateStreaming(sid, d.accumulatedStreamRef.current, d.provider);
+            sessionStore.updateStreaming(sid, accumulatedStreamRef.current, provider);
           }
-        });
+        }, 100);
       }
+      // Also route to store for non-active sessions
       if (sid && sid !== activeViewSessionId) {
-        d.sessionStore.appendRealtime(sid, msg as NormalizedMessage);
+        sessionStore.appendRealtime(sid, msg as NormalizedMessage);
       }
       return;
     }
 
     if (msg.kind === 'stream_end') {
-      if (d.streamTimerRef.current !== null) {
-        cancelAnimationFrame(d.streamTimerRef.current);
-        d.streamTimerRef.current = null;
+      if (streamTimerRef.current) {
+        clearTimeout(streamTimerRef.current);
+        streamTimerRef.current = null;
       }
       if (sid) {
-        if (d.accumulatedStreamRef.current) {
-          d.sessionStore.updateStreaming(sid, d.accumulatedStreamRef.current, d.provider);
+        if (accumulatedStreamRef.current) {
+          sessionStore.updateStreaming(sid, accumulatedStreamRef.current, provider);
         }
-        d.sessionStore.finalizeStreaming(sid);
+        sessionStore.finalizeStreaming(sid);
       }
-      d.accumulatedStreamRef.current = '';
+      accumulatedStreamRef.current = '';
       return;
     }
 
-    // --- All other messages ---
-    const shouldPersist = msg.kind !== 'session_created'
+    // --- All other messages: route to store ---
+    const shouldPersist =
+      msg.kind !== 'session_created'
       && msg.kind !== 'complete'
       && msg.kind !== 'status'
       && msg.kind !== 'permission_request'
       && msg.kind !== 'permission_cancelled';
 
     if (sid && shouldPersist) {
-      d.sessionStore.appendRealtime(sid, msg as NormalizedMessage);
+      sessionStore.appendRealtime(sid, msg as NormalizedMessage);
     }
 
-    // --- UI side effects ---
+    // --- UI side effects for specific kinds ---
     switch (msg.kind) {
       case 'session_created': {
         const newSessionId = msg.newSessionId;
         if (!newSessionId) break;
-        if (!d.currentSessionId) {
-          if (sid && sid !== newSessionId) {
-            d.sessionStore.replaceSessionId(sid, newSessionId);
-          }
-          sessionStorage.setItem('pendingSessionId', newSessionId);
-          if (d.pendingViewSessionRef.current && !d.pendingViewSessionRef.current.sessionId) {
-            d.pendingViewSessionRef.current.sessionId = newSessionId;
-          }
-          d.setCurrentSessionId(newSessionId);
-          d.setPendingPermissionRequests((prev) =>
+
+        // We no longer synthesize client-side placeholder IDs. Until the provider
+        // announces `session_created`, the active id is expected to be null.
+        if (!currentSessionId) {
+          console.log('Session created with ID:', newSessionId);
+          console.log('Existing session ID:', currentSessionId);
+          setCurrentSessionId(newSessionId);
+          setPendingPermissionRequests((prev) =>
             prev.map((r) => (r.sessionId ? r : { ...r, sessionId: newSessionId })),
           );
         }
-        d.onNavigateToSession?.(newSessionId);
+        pendingViewSessionRef.current = null;
+        onSessionActive?.(newSessionId);
+        onSessionProcessing?.(newSessionId);
+        setIsLoading(true);
+        setCanAbortSession(true);
+        setClaudeStatus({
+          text: 'Processing',
+          tokens: 0,
+          can_interrupt: true,
+        });
+        onNavigateToSession?.(newSessionId);
         break;
       }
 
       case 'complete': {
-        if (d.streamTimerRef.current !== null) {
-          cancelAnimationFrame(d.streamTimerRef.current);
-          d.streamTimerRef.current = null;
+        // Flush any remaining streaming state
+        if (streamTimerRef.current) {
+          clearTimeout(streamTimerRef.current);
+          streamTimerRef.current = null;
         }
-        if (sid && d.accumulatedStreamRef.current) {
-          d.sessionStore.updateStreaming(sid, d.accumulatedStreamRef.current, d.provider);
-          d.sessionStore.finalizeStreaming(sid);
+        if (sid && accumulatedStreamRef.current) {
+          sessionStore.updateStreaming(sid, accumulatedStreamRef.current, provider);
+          sessionStore.finalizeStreaming(sid);
         }
-        d.accumulatedStreamRef.current = '';
+        accumulatedStreamRef.current = '';
 
-        d.setIsLoading(false);
-        d.setCanAbortSession(false);
-        d.setClaudeStatus(null);
-        d.setPendingPermissionRequests([]);
-        d.onSessionInactive?.(sid);
-        d.onSessionNotProcessing?.(sid);
+        setIsLoading(false);
+        setCanAbortSession(false);
+        setClaudeStatus(null);
+        setPendingPermissionRequests([]);
+        onSessionInactive?.(sid);
+        onSessionNotProcessing?.(sid);
+        pendingViewSessionRef.current = null;
 
-        const actualSessionId = typeof msg.actualSessionId === 'string' && msg.actualSessionId.trim().length > 0
-          ? msg.actualSessionId : null;
-        const pendingSessionId = sessionStorage.getItem('pendingSessionId');
-        const completedSuccessfully = msg.exitCode === undefined || msg.exitCode === 0;
-        const isVisibleSession = Boolean(sid && (sid === activeViewSessionId || sid === pendingSessionId || d.pendingViewSessionRef.current?.sessionId === sid));
+        // Handle aborted case
+        if (msg.aborted) {
+          // Abort was requested — the complete event confirms it
+          // No special UI action needed beyond clearing loading state above
+          // The backend already sent any abort-related messages
+          break;
+        }
+
+        const actualSessionId =
+          typeof msg.actualSessionId === 'string' && msg.actualSessionId.trim().length > 0
+            ? msg.actualSessionId
+            : null;
+        const isVisibleSession =
+          Boolean(
+            sid
+            && sid === activeViewSessionId,
+          );
 
         if (actualSessionId && sid && actualSessionId !== sid) {
-          d.sessionStore.replaceSessionId(sid, actualSessionId);
+          sessionStore.replaceSessionId(sid, actualSessionId);
+
           if (isVisibleSession) {
-            d.setCurrentSessionId(actualSessionId);
-            if (d.pendingViewSessionRef.current) {
-              const pendingSession = d.pendingViewSessionRef.current.sessionId;
-              if (!pendingSession || pendingSession === sid) {
-                d.pendingViewSessionRef.current.sessionId = actualSessionId;
-              }
-            }
+            setCurrentSessionId(actualSessionId);
           }
-          if (completedSuccessfully && pendingSessionId === sid) {
-            sessionStorage.removeItem('pendingSessionId');
-          }
+
           if (isVisibleSession) {
-            d.onNavigateToSession?.(actualSessionId, { replace: true });
-            setTimeout(() => { void d.paletteOps.refreshProjects(); }, 500);
+            onNavigateToSession?.(actualSessionId, { replace: true });
+            setTimeout(() => { void paletteOps.refreshProjects(); }, 500);
           }
           break;
         }
 
-        if (pendingSessionId && !d.currentSessionId && completedSuccessfully) {
-          const resolvedSessionId = actualSessionId || pendingSessionId;
-          d.setCurrentSessionId(resolvedSessionId);
-          if (actualSessionId) {
-            d.onNavigateToSession?.(resolvedSessionId, { replace: true });
-          }
-          sessionStorage.removeItem('pendingSessionId');
-          setTimeout(() => { void d.paletteOps.refreshProjects(); }, 500);
-        }
         break;
       }
 
       case 'error': {
-        d.setIsLoading(false);
-        d.setCanAbortSession(false);
-        d.setClaudeStatus(null);
-        d.onSessionInactive?.(sid);
-        d.onSessionNotProcessing?.(sid);
+        setIsLoading(false);
+        setCanAbortSession(false);
+        setClaudeStatus(null);
+        onSessionInactive?.(sid);
+        onSessionNotProcessing?.(sid);
+        pendingViewSessionRef.current = null;
         break;
       }
 
       case 'permission_request': {
         if (!msg.requestId) break;
-        d.setPendingPermissionRequests((prev) => {
+        setPendingPermissionRequests((prev) => {
           if (prev.some((r: PendingPermissionRequest) => r.requestId === msg.requestId)) return prev;
           return [...prev, {
             requestId: msg.requestId,
@@ -339,84 +335,39 @@ export function useChatRealtimeHandlers({
             receivedAt: new Date(),
           }];
         });
-        d.setIsLoading(true);
-        d.setCanAbortSession(true);
-        d.setClaudeStatus({ text: 'Waiting for permission', tokens: 0, can_interrupt: true });
-        // permission_request means the backend has completed its current phase
-        // (e.g. plan generation) and is now waiting for user decision.
-        // Remove from processingSessions so the elastic isLoading effect
-        // does not keep the loading indicator active.
-        d.onSessionNotProcessing?.(sid);
+        setIsLoading(true);
+        setCanAbortSession(true);
+        setClaudeStatus({ text: 'Waiting for permission', tokens: 0, can_interrupt: true });
         break;
       }
 
       case 'permission_cancelled': {
         if (msg.requestId) {
-          d.setPendingPermissionRequests((prev) => prev.filter((r: PendingPermissionRequest) => r.requestId !== msg.requestId));
+          setPendingPermissionRequests((prev) => prev.filter((r: PendingPermissionRequest) => r.requestId !== msg.requestId));
         }
         break;
       }
 
       case 'status': {
         if (msg.text === 'token_budget' && msg.tokenBudget) {
-          d.setTokenBudget(msg.tokenBudget as Record<string, unknown>);
+          setTokenBudget(msg.tokenBudget as Record<string, unknown>);
         } else if (msg.text) {
-          d.setClaudeStatus({
+          setClaudeStatus({
             text: msg.text,
             tokens: msg.tokens || 0,
             can_interrupt: msg.canInterrupt !== undefined ? msg.canInterrupt : true,
           });
-          d.setIsLoading(true);
-          d.setCanAbortSession(msg.canInterrupt !== false);
+          setIsLoading(true);
+          setCanAbortSession(msg.canInterrupt !== false);
         }
         break;
       }
 
+      // text, tool_use, tool_result, thinking, interactive_prompt, task_notification
+      // → already routed to store above, no UI side effects needed
       default:
         break;
     }
-  };
-
-  /* ------------------------------------------------------------------ */
-  /*  Message queue subscription (reliable path — never drops messages)  */
-  /* ------------------------------------------------------------------ */
-
-  const processedKeysRef = useRef(new Set<string>());
-  const isProcessingQueueRef = useRef(false);
-
-  useEffect(() => {
-    const unsubscribe = subscribeMessageQueue(() => {
-      if (isProcessingQueueRef.current) return;
-      isProcessingQueueRef.current = true;
-      try {
-        const messages = drainMessageQueue();
-        for (const msg of messages) {
-          const key = computeMessageKey(msg);
-          if (processedKeysRef.current.has(key)) continue;
-          processedKeysRef.current.add(key);
-          processMessageRef.current?.(msg);
-        }
-      } finally {
-        isProcessingQueueRef.current = false;
-      }
-    });
-    return unsubscribe;
-  }, [subscribeMessageQueue, drainMessageQueue]);
-
-  /* ------------------------------------------------------------------ */
-  /*  Fallback: process via latestMessage (catches anything queue missed) */
-  /* ------------------------------------------------------------------ */
-
-  const lastProcessedKeyRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!latestMessage) return;
-    const key = computeMessageKey(latestMessage);
-    if (processedKeysRef.current.has(key)) return;
-    if (lastProcessedKeyRef.current === key) return;
-    lastProcessedKeyRef.current = key;
-    processedKeysRef.current.add(key);
-    processMessageRef.current?.(latestMessage);
   }, [
     latestMessage,
     provider,
@@ -432,6 +383,7 @@ export function useChatRealtimeHandlers({
     streamTimerRef,
     accumulatedStreamRef,
     onSessionInactive,
+    onSessionActive,
     onSessionProcessing,
     onSessionNotProcessing,
     onNavigateToSession,

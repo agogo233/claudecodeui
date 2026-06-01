@@ -2,15 +2,11 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useAuth } from '../components/auth/context/AuthContext';
 import { IS_PLATFORM } from '../constants/config';
 
-type MessageQueueListener = () => void;
-
 type WebSocketContextType = {
   ws: WebSocket | null;
   sendMessage: (message: any) => void;
   latestMessage: any | null;
   isConnected: boolean;
-  subscribeMessageQueue: (cb: MessageQueueListener) => () => void;
-  drainMessageQueue: () => any[];
 };
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
@@ -40,25 +36,6 @@ const useWebSocketProviderState = (): WebSocketContextType => {
   const reconnectAttemptRef = useRef(0);
   const { token } = useAuth();
 
-  const messageQueueRef = useRef<any[]>([]);
-  const queueListenersRef = useRef<Set<MessageQueueListener>>(new Set());
-
-  const subscribeMessageQueue = useCallback((cb: MessageQueueListener) => {
-    queueListenersRef.current.add(cb);
-    return () => { queueListenersRef.current.delete(cb); };
-  }, []);
-
-  const drainMessageQueue = useCallback((): any[] => {
-    const queue = messageQueueRef.current;
-    if (queue.length === 0) return [];
-    messageQueueRef.current = [];
-    return queue;
-  }, []);
-
-  const notifyQueueListeners = useCallback(() => {
-    queueListenersRef.current.forEach(cb => { try { cb(); } catch { /* ignore subscriber error */ } });
-  }, []);
-
   useEffect(() => {
     unmountedRef.current = false;
     connect();
@@ -86,10 +63,7 @@ const useWebSocketProviderState = (): WebSocketContextType => {
         wsRef.current = websocket;
         reconnectAttemptRef.current = 0;
         if (hasConnectedRef.current) {
-          const reconnectMsg = { type: 'websocket-reconnected', timestamp: Date.now() };
-          setLatestMessage(reconnectMsg);
-          messageQueueRef.current.push(reconnectMsg);
-          notifyQueueListeners();
+          setLatestMessage({ type: 'websocket-reconnected', timestamp: Date.now() });
         }
         hasConnectedRef.current = true;
       };
@@ -97,8 +71,6 @@ const useWebSocketProviderState = (): WebSocketContextType => {
       websocket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          messageQueueRef.current.push(data);
-          notifyQueueListeners();
           setLatestMessage(data);
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -143,9 +115,7 @@ const useWebSocketProviderState = (): WebSocketContextType => {
     sendMessage,
     latestMessage,
     isConnected,
-    subscribeMessageQueue,
-    drainMessageQueue,
-  }), [sendMessage, latestMessage, isConnected, subscribeMessageQueue, drainMessageQueue]);
+  }), [sendMessage, latestMessage, isConnected]);
 
   return value;
 };

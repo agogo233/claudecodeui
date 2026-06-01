@@ -7,7 +7,7 @@ import {
   CURSOR_MODELS,
   GEMINI_MODELS,
   OPENCODE_MODELS,
-} from '../../../../../../../../shared/modelConstants';
+} from '../../../../../../../../public/modelConstants';
 import { Button, Input } from '../../../../../../../shared/view/ui';
 import SessionProviderLogo from '../../../../../../llm-logo-provider/SessionProviderLogo';
 import type { AgentProvider } from '../../../../../types/types';

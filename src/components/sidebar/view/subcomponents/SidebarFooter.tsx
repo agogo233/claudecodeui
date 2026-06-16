@@ -1,7 +1,6 @@
-import { Settings, ArrowUpCircle, Bug } from 'lucide-react';
+import { Settings, Bug } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import { IS_PLATFORM } from '../../../../constants/config';
-import type { ReleaseInfo } from '../../../../types/sharedTypes';
 
 const GITHUB_ISSUES_URL = 'https://github.com/siteboon/claudecodeui/issues/new';
 const GITHUB_REPO_URL = 'https://github.com/siteboon/claudecodeui';
@@ -17,75 +16,17 @@ function DiscordIcon({ className }: { className?: string }) {
 }
 
 type SidebarFooterProps = {
-  updateAvailable: boolean;
-  releaseInfo: ReleaseInfo | null;
-  latestVersion: string | null;
-  currentVersion: string;
-  onShowVersionModal: () => void;
   onShowSettings: () => void;
   t: TFunction;
 };
 
 export default function SidebarFooter({
-  updateAvailable,
-  releaseInfo,
-  latestVersion,
-  currentVersion,
-  onShowVersionModal,
   onShowSettings,
   t,
 }: SidebarFooterProps) {
   return (
-    <div className="flex-shrink-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
-      {/* Update banner */}
-      {updateAvailable && (
-        <>
-          <div className="nav-divider" />
-          {/* Desktop update */}
-          <div className="hidden px-2 py-1.5 md:block">
-            <button
-              className="group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-blue-50/80 dark:hover:bg-blue-900/15"
-              onClick={onShowVersionModal}
-            >
-              <div className="relative flex-shrink-0">
-                <ArrowUpCircle className="h-4 w-4 text-blue-500 dark:text-blue-400" />
-                <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-blue-600 dark:text-blue-300">
-                  {releaseInfo?.title || `v${latestVersion}`}
-                </span>
-                <span className="text-[10px] text-blue-500/70 dark:text-blue-400/60">
-                  {t('version.updateAvailable')}
-                </span>
-              </div>
-            </button>
-          </div>
-
-          {/* Mobile update */}
-          <div className="px-3 py-2 md:hidden">
-            <button
-              className="flex h-11 w-full items-center gap-3 rounded-xl border border-blue-200/60 bg-blue-50/80 px-3.5 transition-all active:scale-[0.98] dark:border-blue-700/40 dark:bg-blue-900/15"
-              onClick={onShowVersionModal}
-            >
-              <div className="relative flex-shrink-0">
-                <ArrowUpCircle className="w-4.5 h-4.5 text-blue-500 dark:text-blue-400" />
-                <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
-              </div>
-              <div className="min-w-0 flex-1 text-left">
-                <span className="block truncate text-sm font-medium text-blue-600 dark:text-blue-300">
-                  {releaseInfo?.title || `v${latestVersion}`}
-                </span>
-                <span className="text-xs text-blue-500/70 dark:text-blue-400/60">
-                  {t('version.updateAvailable')}
-                </span>
-              </div>
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* Community + Settings */}
+  <div className="flex-shrink-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
+  {/* Community + Settings */}
       <div className="nav-divider" />
 
       {/* Desktop Report Issue */}
@@ -125,19 +66,8 @@ export default function SidebarFooter({
         </button>
       </div>
 
-      {/* Desktop version brand line (OSS mode only) */}
-      {!IS_PLATFORM && (
-        <div className="hidden px-3 py-2 text-center md:block">
-          <a
-            href={GITHUB_REPO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[10px] text-muted-foreground/40 transition-colors hover:text-muted-foreground"
-          >
-            CloudCLI v{currentVersion} – {t('branding.openSource')}
-          </a>
-        </div>
-      )}
+  {/* Desktop version brand line (OSS mode only) */}
+  {!IS_PLATFORM && (
 
       {/* Mobile Report Issue */}
       <div className="px-3 pt-3 md:hidden">

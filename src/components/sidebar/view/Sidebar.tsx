@@ -262,7 +262,7 @@ handleSessionClick(sessionObj, project.projectId);
 }
 } else {
 handleSessionClick(sessionObj, projectId ?? '');
-}}
+}}}
 onRefresh={() => {
 void refreshProjects();
 }}

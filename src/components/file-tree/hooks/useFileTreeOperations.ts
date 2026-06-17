@@ -472,14 +472,18 @@ export function useFileTreeOperations({
     e.stopPropagation();
     setHoveredDir(null);
 
-    if (!dragItem) return;
+    const sourcePath = e.dataTransfer.getData('text/plain');
+    if (!sourcePath) return;
 
-    const sourcePath = dragItem.path;
     if (sourcePath === targetDir) return;
+
+    const uploadData = e.dataTransfer.types;
+    const isExternalUpload = Array.from(uploadData).includes('Files');
+    if (isExternalUpload) return;
 
     handleMoveFile(sourcePath, targetDir, false);
     setDragItem(null);
-  }, [handleMoveFile, dragItem]);
+  }, [handleMoveFile]);
 
   const handleDragEnd = useCallback(() => {
     setDragItem(null);

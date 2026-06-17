@@ -327,6 +327,11 @@ app.post('/api/create-folder', authenticateToken, async (req, res) => {
             return res.status(403).json({ error: validation.error });
         }
         const targetPath = validation.resolvedPath || resolvedInput;
+        const folderName = path.basename(targetPath);
+        const nameValidation = validateFilename(folderName);
+        if (!nameValidation.valid) {
+            return res.status(400).json({ error: nameValidation.error });
+        }
         const parentDir = path.dirname(targetPath);
         try {
             await fs.promises.access(parentDir);
@@ -390,6 +395,8 @@ app.get('/api/projects/:projectId/file', authenticateToken, async (req, res) => 
             res.status(404).json({ error: 'File not found' });
         } else if (error.code === 'EACCES') {
             res.status(403).json({ error: 'Permission denied' });
+        } else if (error.code === 'EISDIR') {
+            res.status(400).json({ error: 'Path is a directory, not a file' });
         } else {
             res.status(500).json({ error: error.message });
         }
@@ -831,7 +838,7 @@ app.put('/api/projects/:projectId/files/move', authenticateToken, async (req, re
 app.delete('/api/projects/:projectId/files', authenticateToken, async (req, res) => {
     try {
         const { projectId } = req.params;
-        const { path: targetPath, type } = req.body;
+        const { path: targetPath } = req.body;
 
         // Validate input
         if (!targetPath) {
@@ -999,6 +1006,7 @@ const uploadFilesHandler = async (req, res) => {
 
             // Move uploaded files from temp to target directory
             const uploadedFiles = [];
+            let skippedCount = 0;
             console.log('[DEBUG] Processing files:', req.files.map(f => ({ originalname: f.originalname, path: f.path })));
             for (let i = 0; i < req.files.length; i++) {
                 const file = req.files[i];
@@ -1013,6 +1021,7 @@ const uploadFilesHandler = async (req, res) => {
                     console.log('[DEBUG] Destination validation failed for:', destPath);
                     // Clean up temp file
                     await fsPromises.unlink(file.path).catch(() => {});
+                    skippedCount++;
                     continue;
                 }
 
@@ -1036,14 +1045,19 @@ const uploadFilesHandler = async (req, res) => {
                 });
             }
 
-            res.json({
+            const responseData = {
                 success: true,
                 files: uploadedFiles,
                 uploadedCount: uploadedFiles.length,
                 requestedFileCount,
                 targetPath: resolvedTargetDir,
                 message: `Uploaded ${uploadedFiles.length} ${uploadedFiles.length === 1 ? 'file' : 'files'} successfully`
-            });
+            };
+            if (skippedCount > 0) {
+                responseData.skippedCount = skippedCount;
+                responseData.message += `, ${skippedCount} ${skippedCount === 1 ? 'file was' : 'files were'} skipped due to path validation`;
+            }
+            res.json(responseData);
         } catch (error) {
             console.error('Error uploading files:', error);
             // Clean up any remaining temp files

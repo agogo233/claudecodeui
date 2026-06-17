@@ -733,6 +733,100 @@ app.put('/api/projects/:projectId/files/rename', authenticateToken, async (req, 
     }
 });
 
+// PUT /api/projects/:projectId/files/move - Move file or directory to another directory
+app.put('/api/projects/:projectId/files/move', authenticateToken, async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const { sourcePath, destDir, overwrite, newName } = req.body;
+
+        if (!sourcePath || destDir === undefined) {
+            return res.status(400).json({ error: 'sourcePath and destDir are required' });
+        }
+
+        const projectRoot = await projectsDb.getProjectPathById(projectId);
+        if (!projectRoot) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        const sourceValidation = validatePathInProject(projectRoot, sourcePath);
+        if (!sourceValidation.valid) {
+            return res.status(403).json({ error: sourceValidation.error });
+        }
+
+        const resolvedSource = sourceValidation.resolved;
+
+        try {
+            await fsPromises.access(resolvedSource);
+        } catch {
+            return res.status(404).json({ error: 'Source file or directory not found' });
+        }
+
+        const targetBase = destDir ? path.join(projectRoot, destDir) : projectRoot;
+        const destValidation = validatePathInProject(projectRoot, targetBase);
+        if (!destValidation.valid) {
+            return res.status(403).json({ error: destValidation.error });
+        }
+
+        const resolvedDestDir = path.resolve(projectRoot, destDir || '');
+        const sourceName = newName || path.basename(resolvedSource);
+        const resolvedDestPath = path.join(resolvedDestDir, sourceName);
+
+        const destNameValidation = validateFilename(sourceName);
+        if (!destNameValidation.valid) {
+            return res.status(400).json({ error: destNameValidation.error });
+        }
+
+        const destPathValidation = validatePathInProject(projectRoot, resolvedDestPath);
+        if (!destPathValidation.valid) {
+            return res.status(403).json({ error: destPathValidation.error });
+        }
+
+        if (resolvedSource === resolvedDestPath) {
+            return res.status(400).json({ error: 'Source and destination are the same' });
+        }
+
+        let destExists = false;
+        try {
+            await fsPromises.access(resolvedDestPath);
+            destExists = true;
+        } catch {
+            // Destination doesn't exist, proceed
+        }
+
+        if (destExists) {
+            if (overwrite) {
+                await fsPromises.rm(resolvedDestPath, { recursive: true, force: true });
+            } else {
+                return res.status(409).json({
+                    error: 'A file or directory with this name already exists',
+                    name: sourceName,
+                    conflict: true,
+                });
+            }
+        }
+
+        await fsPromises.rename(resolvedSource, resolvedDestPath);
+
+        res.json({
+            success: true,
+            sourcePath: resolvedSource,
+            destPath: resolvedDestPath,
+            message: 'Moved successfully',
+        });
+    } catch (error) {
+        console.error('Error moving file/directory:', error);
+        if (error.code === 'EACCES') {
+            res.status(403).json({ error: 'Permission denied' });
+        } else if (error.code === 'ENOENT') {
+            res.status(404).json({ error: 'File or directory not found' });
+        } else if (error.code === 'EXDEV') {
+            res.status(400).json({ error: 'Cannot move across different filesystems' });
+        } else {
+            res.status(500).json({ error: error.message });
+        }
+    }
+});
+
 // DELETE /api/projects/:projectId/files - Delete file or directory
 app.delete('/api/projects/:projectId/files', authenticateToken, async (req, res) => {
     try {

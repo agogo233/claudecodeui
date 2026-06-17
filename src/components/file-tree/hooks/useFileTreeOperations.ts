@@ -2,8 +2,18 @@ import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import JSZip from 'jszip';
 import { api } from '../../../utils/api';
+import { copyTextToClipboard } from '../../../utils/clipboard';
 import type { FileTreeNode, FileMoveConflict } from '../types/types';
 import type { Project } from '../../../types/app';
+
+async function getJsonSafe(response: Response): Promise<any> {
+  const contentType = response.headers.get('content-type');
+  if (contentType?.includes('application/json')) {
+    return response.json();
+  }
+  const text = await response.text();
+  throw new Error(`Unexpected response: ${response.status} ${text.slice(0, 200)}`);
+}
 
 const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1f]/;
 const RESERVED_NAMES = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
@@ -151,7 +161,7 @@ export function useFileTreeOperations({
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        const data = await getJsonSafe(response);
         throw new Error(data.error || 'Failed to rename');
       }
 
@@ -185,7 +195,7 @@ export function useFileTreeOperations({
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        const data = await getJsonSafe(response);
         throw new Error(data.error || 'Failed to delete');
       }
 
@@ -236,7 +246,7 @@ export function useFileTreeOperations({
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        const data = await getJsonSafe(response);
         throw new Error(data.error || 'Failed to create');
       }
 
@@ -255,14 +265,13 @@ export function useFileTreeOperations({
     }
   }, [selectedProject, newItemParent, newItemType, newItemName, validateFilename, showToast, t, onRefresh, handleCancelCreate]);
 
-  const handleCopyPath = useCallback((item: FileTreeNode) => {
-    navigator.clipboard.writeText(item.path)
-      .then(() => {
-        showToast(t('fileTree.toast.pathCopied', 'Path copied to clipboard'), 'success');
-      })
-      .catch(() => {
-        showToast(t('fileTree.toast.copyFailed', 'Failed to copy path'), 'error');
-      });
+  const handleCopyPath = useCallback(async (item: FileTreeNode) => {
+    const copied = await copyTextToClipboard(item.path);
+    if (copied) {
+      showToast(t('fileTree.toast.pathCopied', 'Path copied to clipboard'), 'success');
+    } else {
+      showToast(t('fileTree.toast.copyFailed', 'Failed to copy path'), 'error');
+    }
   }, [showToast, t]);
 
   const triggerBrowserDownload = useCallback((blob: Blob, fileName: string) => {
@@ -365,7 +374,7 @@ export function useFileTreeOperations({
       });
 
       if (response.status === 409) {
-        const data = await response.json();
+        const data = await getJsonSafe(response);
         if (data.conflict) {
           setMoveConflict({
             isOpen: true,
@@ -379,7 +388,7 @@ export function useFileTreeOperations({
       }
 
       if (!response.ok) {
-        const data = await response.json();
+        const data = await getJsonSafe(response);
         throw new Error(data.error || 'Failed to move');
       }
 
@@ -423,7 +432,7 @@ export function useFileTreeOperations({
             onRefresh();
             return;
           }
-          const data = await response.json();
+          const data = await getJsonSafe(response);
           if (!data.conflict) {
             throw new Error(data.error || 'Move failed');
           }
@@ -463,20 +472,14 @@ export function useFileTreeOperations({
     e.stopPropagation();
     setHoveredDir(null);
 
-    const sourcePath = e.dataTransfer.getData('text/plain');
-    const itemType = e.dataTransfer.getData('application/x-item-type');
+    if (!dragItem) return;
 
-    if (!sourcePath) return;
-
+    const sourcePath = dragItem.path;
     if (sourcePath === targetDir) return;
-
-    const uploadData = e.dataTransfer.types;
-    const isExternalUpload = Array.from(uploadData).includes('Files');
-    if (isExternalUpload) return;
 
     handleMoveFile(sourcePath, targetDir, false);
     setDragItem(null);
-  }, [handleMoveFile]);
+  }, [handleMoveFile, dragItem]);
 
   const handleDragEnd = useCallback(() => {
     setDragItem(null);

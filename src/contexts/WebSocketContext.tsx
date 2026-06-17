@@ -96,6 +96,11 @@ const useWebSocketProviderState = (): WebSocketContextType => {
 
   const connect = useCallback(() => {
     if (unmountedRef.current) return;
+    // Clean up any pending reconnect timer before starting a new connection
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
     try {
       const wsUrl = buildWebSocketUrl(token);
       if (!wsUrl) return console.warn('No authentication token found for WebSocket connection');
@@ -124,6 +129,11 @@ const useWebSocketProviderState = (): WebSocketContextType => {
       websocket.onclose = () => {
         setIsConnected(false);
         wsRef.current = null;
+        // Clear any existing reconnect timer before scheduling a new one
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = null;
+        }
         const RECONNECT_BASE = 1000;
         const RECONNECT_MAX = 30000;
         const attempt = reconnectAttemptRef.current;

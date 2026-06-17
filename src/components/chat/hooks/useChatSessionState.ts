@@ -434,6 +434,12 @@ export function useChatSessionState({
   }, [chatMessages.length, isLoadingSessionMessages, scrollToBottom]);
 
   // Main session loading effect — store-based
+  // Ref 稳定 ws 和 sendMessage 引用，避免 WebSocket 重连时主 effect 重新加载
+  const wsRef = useRef(ws);
+  wsRef.current = ws;
+  const sendMessageRef = useRef(sendMessage);
+  sendMessageRef.current = sendMessage;
+
   useEffect(() => {
     if (!selectedSession || !selectedProject) {
       // A freshly created session can be mid-run before the router has a
@@ -446,7 +452,7 @@ export function useChatSessionState({
       resetStreamingState();
       setCurrentSessionId(null);
       messagesOffsetRef.current = 0;
-      setHasMoreMessages(false);
+     HortonsHasMoreMessages(false);
       setTotalMessages(0);
       setTokenBudget(null);
       lastLoadedSessionKeyRef.current = null;
@@ -457,12 +463,13 @@ export function useChatSessionState({
     const sessionKey = `${selectedSessionId}:${selectedProject.projectId}`;
 
     const subscribeToSelectedSession = () => {
-      if (!ws) {
+      const currentWs = wsRef.current;
+      if (!currentWs) {
         return;
       }
 
       statusCheckSentAtRef.current.set(selectedSessionId, Date.now());
-      sendMessage({
+      sendMessageRef.current({
         type: 'chat.subscribe',
         sessions: [{
           sessionId: selectedSessionId,
@@ -530,12 +537,25 @@ export function useChatSessionState({
     resetStreamingState,
     selectedProject,
     selectedSession?.id,
-    sendMessage,
     statusCheckSentAtRef,
     lastSeqRef,
-    ws,
     sessionStore,
   ]);
+
+  // Separate effect: re-subscribe to the session whenever ws/sendMessage changes,
+  // without reloading messages from the server.
+  useEffect(() => {
+    if (!selectedSession || !ws) return;
+    
+    statusCheckSentAtRef.current.set(selectedSession.id, Date.now());
+    sendMessage({
+      type: 'chat.subscribe',
+      sessions: [{
+        sessionId: selectedSession.id,
+        lastSeq: lastSeqRef.current.get(selectedSession.id) ?? 0,
+      }],
+    });
+  }, [selectedSession, ws, sendMessage, statusCheckSentAtRef, lastSeqRef]);
 
   // External message update (e.g. WebSocket reconnect, background refresh)
   useEffect(() => {

@@ -991,6 +991,5 @@ export function useSidebarController({
     setSearchFilter,
     setDeleteConfirmation,
     setSessionDeleteConfirmation,
-    setShowVersionModal,
   };
 }

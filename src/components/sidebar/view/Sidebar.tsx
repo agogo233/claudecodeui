@@ -70,8 +70,7 @@ runningSessionsCount,
 deletingProjects,
 deleteConfirmation,
 sessionDeleteConfirmation,
-showVersionModal,
-filteredProjects,
+  filteredProjects,
 archivedProjects,
 archivedSessions,
 archivedSessionsCount,
@@ -105,8 +104,7 @@ setEditingSessionName,
 setSearchFilter,
 setDeleteConfirmation,
 setSessionDeleteConfirmation,
-setShowVersionModal,
-} = useSidebarController({
+  } = useSidebarController({
 projects,
 selectedProject,
 selectedSession,
@@ -210,11 +208,9 @@ t={t}
 
 {isSidebarCollapsed ? (
 <SidebarCollapsed
-onExpand={handleExpandSidebar}
-onShowSettings={onShowSettings}
-updateAvailable={updateAvailable}
-onShowVersionModal={() => setShowVersionModal(true)}
-t={t}
+  onExpand={handleExpandSidebar}
+  onShowSettings={onShowSettings}
+  t={t}
 />
 ) : (
 <>
@@ -279,12 +275,7 @@ void refreshProjects();
 isRefreshing={isRefreshing}
 onCreateProject={() => setShowNewProject(true)}
 onCollapseSidebar={handleCollapseSidebar}
-updateAvailable={updateAvailable}
-releaseInfo={releaseInfo}
-latestVersion={latestVersion}
-currentVersion={currentVersion}
-onShowVersionModal={() => setShowVersionModal(true)}
-onShowSettings={onShowSettings}
+  onShowSettings={onShowSettings}
 projectListProps={projectListProps}
 t={t}
 />

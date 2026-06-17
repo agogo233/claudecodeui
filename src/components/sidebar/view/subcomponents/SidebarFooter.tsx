@@ -66,8 +66,8 @@ export default function SidebarFooter({
         </button>
       </div>
 
-  {/* Desktop version brand line (OSS mode only) */}
   {!IS_PLATFORM && (
+    <>
 
       {/* Mobile Report Issue */}
       <div className="px-3 pt-3 md:hidden">
@@ -111,6 +111,8 @@ export default function SidebarFooter({
           <span className="text-base font-medium text-foreground">{t('actions.settings')}</span>
         </button>
       </div>
-    </div>
+    </>
+  )}
+  </div>
   );
 }

@@ -21,23 +21,24 @@ mcpServerStatus: MCPServerStatus;
 };
 
 function Sidebar({
-projects,
-selectedProject,
-selectedSession,
-onProjectSelect,
-onSessionSelect,
-onNewSession,
-onSessionDelete,
-onLoadMoreSessions,
-onProjectDelete,
-isLoading,
-loadingProgress,
-onRefresh,
-onShowSettings,
-showSettings,
-settingsInitialTab,
-onCloseSettings,
-isMobile,
+  projects,
+  selectedProject,
+  selectedSession,
+  activeSessions,
+  onProjectSelect,
+  onSessionSelect,
+  onNewSession,
+  onSessionDelete,
+  onLoadMoreSessions,
+  onProjectDelete,
+  isLoading,
+  loadingProgress,
+  onRefresh,
+  onShowSettings,
+  showSettings,
+  settingsInitialTab,
+  onCloseSettings,
+  isMobile,
 }: SidebarProps) {
 const { t } = useTranslation(['sidebar', 'common']);
 const { isPWA } = useDeviceSettings({ trackMobile: false });
@@ -65,9 +66,11 @@ conversationResults,
 isSearching,
 searchProgress,
 clearConversationResults,
+runningSessionsCount,
 deletingProjects,
 deleteConfirmation,
 sessionDeleteConfirmation,
+showVersionModal,
 filteredProjects,
 archivedProjects,
 archivedSessions,
@@ -102,10 +105,12 @@ setEditingSessionName,
 setSearchFilter,
 setDeleteConfirmation,
 setSessionDeleteConfirmation,
+setShowVersionModal,
 } = useSidebarController({
 projects,
 selectedProject,
 selectedSession,
+activeSessions,
 isLoading,
 isMobile,
 t,
@@ -152,6 +157,8 @@ tasksEnabled,
 mcpServerStatus,
 getProjectSessions,
 loadingMoreProjects,
+activeSessions,
+forceExpanded: searchMode === 'running',
 isProjectStarred,
 onEditingNameChange: setEditingName,
 onToggleProject: toggleProject,
@@ -205,6 +212,8 @@ t={t}
 <SidebarCollapsed
 onExpand={handleExpandSidebar}
 onShowSettings={onShowSettings}
+updateAvailable={updateAvailable}
+onShowVersionModal={() => setShowVersionModal(true)}
 t={t}
 />
 ) : (
@@ -214,6 +223,7 @@ isPWA={isPWA}
 isMobile={isMobile}
 isLoading={isLoading}
 projects={projects}
+runningSessionsCount={runningSessionsCount}
 archivedProjects={archivedProjects}
 archivedSessions={archivedSessions}
 archivedSessionsCount={archivedSessionsCount}
@@ -269,6 +279,11 @@ void refreshProjects();
 isRefreshing={isRefreshing}
 onCreateProject={() => setShowNewProject(true)}
 onCollapseSidebar={handleCollapseSidebar}
+updateAvailable={updateAvailable}
+releaseInfo={releaseInfo}
+latestVersion={latestVersion}
+currentVersion={currentVersion}
+onShowVersionModal={() => setShowVersionModal(true)}
 onShowSettings={onShowSettings}
 projectListProps={projectListProps}
 t={t}

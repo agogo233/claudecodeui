@@ -201,6 +201,8 @@ export function useChatSessionState({
     }
   }, [newSessionTrigger, onSessionIdle, resetStreamingState]);
 
+  const pendingViewSessionRef = useRef<{ sessionId: string } | null>(null);
+
   /* ---------------------------------------------------------------- */
   /*  Derive processing state for the viewed session                  */
   /* ---------------------------------------------------------------- */
@@ -223,8 +225,6 @@ export function useChatSessionState({
   /* ---------------------------------------------------------------- */
   /*  Derive chatMessages from the store                              */
   /* ---------------------------------------------------------------- */
-
-  const pendingViewSessionRef = useRef<{ sessionId: string } | null>(null);
 
   const [pendingUserMessage, setPendingUserMessage] = useState<ChatMessage | null>(null);
   const flushedPendingUserMessageRef = useRef<ChatMessage | null>(null);

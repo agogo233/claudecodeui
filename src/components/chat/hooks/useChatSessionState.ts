@@ -452,7 +452,7 @@ export function useChatSessionState({
       resetStreamingState();
       setCurrentSessionId(null);
       messagesOffsetRef.current = 0;
-     HortonsHasMoreMessages(false);
+      setHasMoreMessages(false);
       setTotalMessages(0);
       setTokenBudget(null);
       lastLoadedSessionKeyRef.current = null;

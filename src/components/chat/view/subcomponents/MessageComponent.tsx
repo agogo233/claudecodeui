@@ -430,7 +430,6 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, a
   if (prevProps.message.isToolUse !== nextProps.message.isToolUse) return false;
   if (prevProps.message.toolResult !== nextProps.message.toolResult) return false;
   if (prevProps.message.isStreaming !== nextProps.message.isStreaming) return false;
-  if (prevProps.message.content !== nextProps.message.content) return false;
   if (prevProps.provider !== nextProps.provider) return false;
   if (prevProps.showThinking !== nextProps.showThinking) return false;
   if (prevProps.autoExpandTools !== nextProps.autoExpandTools) return false;

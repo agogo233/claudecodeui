@@ -72,6 +72,13 @@ export function useFileMentions({ selectedProject, input, setInput, textareaRef 
       try {
         const response = await api.getFiles(projectId, { signal: abortController.signal });
         if (!response.ok) {
+          console.error('Failed to fetch files:', response.status, response.statusText);
+          return;
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType?.includes('application/json')) {
+          console.error('Non-JSON response from getFiles:', await response.text().catch(() => ''));
           return;
         }
 

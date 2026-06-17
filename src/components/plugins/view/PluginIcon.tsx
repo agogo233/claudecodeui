@@ -50,6 +50,7 @@ function sanitizeSvg(svgText: string): string | null {
     if (doc.querySelector('parsererror')) return null;
     return sanitized;
   } catch {
+    console.warn('[Plugin] Failed to sanitize SVG icon');
     return null;
   }
 }

@@ -1,4 +1,5 @@
 import { GitBranch, Mail, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type GitConfigurationStepProps = {
   gitName: string;
@@ -15,15 +16,16 @@ export default function GitConfigurationStep({
   onGitNameChange,
   onGitEmailChange,
 }: GitConfigurationStepProps) {
+  const { t } = useTranslation('common');
   return (
     <div className="space-y-6">
       <div className="mb-8 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
           <GitBranch className="h-8 w-8 text-blue-600 dark:text-blue-400" />
         </div>
-        <h2 className="mb-2 text-2xl font-bold text-foreground">Git Configuration</h2>
+        <h2 className="mb-2 text-2xl font-bold text-foreground">{t('onboarding.gitConfig.title')}</h2>
         <p className="text-muted-foreground">
-          Configure your git identity to ensure proper attribution for commits.
+          {t('onboarding.gitConfig.description')}
         </p>
       </div>
 
@@ -31,7 +33,7 @@ export default function GitConfigurationStep({
         <div>
           <label htmlFor="gitName" className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
             <User className="h-4 w-4" />
-            Git Name <span className="text-red-500">*</span>
+            {t('onboarding.gitConfig.nameLabel')} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -39,17 +41,17 @@ export default function GitConfigurationStep({
             value={gitName}
             onChange={(event) => onGitNameChange(event.target.value)}
             className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="John Doe"
+            placeholder={t('onboarding.gitConfig.namePlaceholder')}
             required
             disabled={isSubmitting}
           />
-          <p className="mt-1 text-xs text-muted-foreground">Saved as `git config --global user.name`.</p>
+          <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.gitConfig.nameSaved')}</p>
         </div>
 
         <div>
           <label htmlFor="gitEmail" className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
             <Mail className="h-4 w-4" />
-            Git Email <span className="text-red-500">*</span>
+            {t('onboarding.gitConfig.emailLabel')} <span className="text-red-500">*</span>
           </label>
           <input
             type="email"
@@ -57,11 +59,11 @@ export default function GitConfigurationStep({
             value={gitEmail}
             onChange={(event) => onGitEmailChange(event.target.value)}
             className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="john@example.com"
+            placeholder={t('onboarding.gitConfig.emailPlaceholder')}
             required
             disabled={isSubmitting}
           />
-          <p className="mt-1 text-xs text-muted-foreground">Saved as `git config --global user.email`.</p>
+          <p className="mt-1 text-xs text-muted-foreground">{t('onboarding.gitConfig.emailSaved')}</p>
         </div>
       </div>
     </div>

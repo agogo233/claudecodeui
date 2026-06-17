@@ -106,6 +106,7 @@ const getSavedLanguage = () => {
     }
     return 'en';
   } catch {
+    console.warn('[i18n] Failed to read saved language, falling back to "en"');
     return 'en';
   }
 };

@@ -173,6 +173,7 @@ export function useMcpServerForm({
         setJsonValidationError('');
       }
     } catch {
+      console.warn('[useMcpServerForm] Invalid JSON input');
       setJsonValidationError(t('mcpForm.validation.invalidJson'));
     }
   };

@@ -21,6 +21,7 @@ export function parseShellMessage(payload: string): ShellIncomingMessage | null 
   try {
     return JSON.parse(payload) as ShellIncomingMessage;
   } catch {
+    console.warn('[Socket] Failed to parse shell message');
     return null;
   }
 }

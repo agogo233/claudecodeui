@@ -13,6 +13,7 @@ export const readProjectSortOrder = (): ProjectSortOrder => {
     const settings = JSON.parse(rawSettings) as { projectSortOrder?: ProjectSortOrder };
     return settings.projectSortOrder === 'date' ? 'date' : 'name';
   } catch {
+    console.warn('[Sidebar] Failed to read project sort order');
     return 'name';
   }
 };
@@ -38,6 +39,7 @@ export const readLegacyStarredProjectIds = (): string[] => {
       .map((value) => String(value).trim())
       .filter((value) => value.length > 0);
   } catch {
+    console.warn('[Sidebar] Failed to read legacy starred projects');
     return [];
   }
 };

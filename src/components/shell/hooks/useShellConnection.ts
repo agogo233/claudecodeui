@@ -180,6 +180,7 @@ export function useShellConnection({
           connectingRef.current = false;
         };
       } catch {
+        console.warn('[Shell] WebSocket connection failed');
         setIsConnected(false);
         setIsConnecting(false);
         connectingRef.current = false;

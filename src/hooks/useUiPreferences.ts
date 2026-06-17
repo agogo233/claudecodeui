@@ -73,6 +73,7 @@ const readLegacyPreference = (key: UiPreferenceKey, fallback: boolean): boolean 
     const parsed = JSON.parse(raw);
     return parseBoolean(parsed, fallback);
   } catch {
+    console.warn('[useUiPreferences] Failed to parse preference, using fallback');
     return fallback;
   }
 };

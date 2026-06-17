@@ -63,6 +63,7 @@ const readSelectedProvider = (): LLMProvider => {
     const storedProvider = localStorage.getItem('selected-provider');
     return storedProvider ? storedProvider as LLMProvider : DEFAULT_PROVIDER;
   } catch {
+    console.warn('[useProjectsState] Failed to read stored provider preference');
     return DEFAULT_PROVIDER;
   }
 };

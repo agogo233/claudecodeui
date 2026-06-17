@@ -58,6 +58,13 @@ export const useCodeEditorDocument = ({ file, projectPath }: UseCodeEditorDocume
 
         const response = await api.readFile(fileProjectId, filePath);
         if (!response.ok) {
+          const contentType = response.headers.get('content-type');
+          if (contentType?.includes('application/json')) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Failed to load file: ${response.status}`);
+          }
+          const textError = await response.text();
+          console.error('Non-JSON error response:', textError);
           throw new Error(`Failed to load file: ${response.status} ${response.statusText}`);
         }
 

@@ -75,6 +75,7 @@ export function usePrdSave({
             const errorData = (await response.json()) as { message?: string };
             return { status: 'failed', message: errorData.message || fallbackMessage };
           } catch {
+            console.warn('[PRD] Failed to parse error response, using fallback message');
             return { status: 'failed', message: fallbackMessage };
           }
         }

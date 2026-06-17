@@ -69,6 +69,7 @@ const parseUploadResponse = (xhr: XMLHttpRequest): UploadResponse => {
   try {
     return JSON.parse(xhr.responseText) as UploadResponse;
   } catch {
+    console.warn('[FileTree] Failed to parse upload response');
     return {};
   }
 };

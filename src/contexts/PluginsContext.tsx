@@ -59,6 +59,7 @@ export function PluginsProvider({ children }: { children: ReactNode }) {
           const data = await res.json();
           errorMessage = data.details || data.error || errorMessage;
         } catch {
+          console.warn('[Plugins] Failed to parse error response body');
           errorMessage = res.statusText || errorMessage;
         }
         setPluginsError(errorMessage);

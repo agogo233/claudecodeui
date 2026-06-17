@@ -8,6 +8,7 @@ function readAll(): Record<string, CustomModel[]> {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
   } catch {
+    console.warn('[customModels] Failed to parse stored custom models');
     return {};
   }
 }

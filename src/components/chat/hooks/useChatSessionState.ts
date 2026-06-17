@@ -68,11 +68,11 @@ function chatMessageToNormalized(
   if (msg.isInteractivePrompt) {
     return { ...base, kind: 'interactive_prompt', content: msg.content || '' } as NormalizedMessage;
   }
-  if ((msg as any).isTaskNotification) {
+  if (msg.isTaskNotification) {
     return {
       ...base,
       kind: 'task_notification',
-      status: (msg as any).taskStatus || 'completed',
+      status: msg.taskStatus || 'completed',
       summary: msg.content || '',
     } as NormalizedMessage;
   }
@@ -223,6 +223,8 @@ export function useChatSessionState({
   /* ---------------------------------------------------------------- */
   /*  Derive chatMessages from the store                              */
   /* ---------------------------------------------------------------- */
+
+  const pendingViewSessionRef = useRef<{ sessionId: string } | null>(null);
 
   const [pendingUserMessage, setPendingUserMessage] = useState<ChatMessage | null>(null);
   const flushedPendingUserMessageRef = useRef<ChatMessage | null>(null);

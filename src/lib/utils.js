@@ -10,6 +10,7 @@ export function safeJsonParse(value) {
   try {
     return JSON.parse(value);
   } catch {
+    console.warn('[utils] Failed to parse JSON value');
     return null;
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useDeviceSettings } from '../../../hooks/useDeviceSettings';
@@ -7,6 +7,7 @@ import { useSidebarController } from '../hooks/useSidebarController';
 import { useTaskMaster } from '../../../contexts/TaskMasterContext';
 import { usePaletteOps } from '../../../contexts/PaletteOpsContext';
 import { useTasksSettings } from '../../../contexts/TasksSettingsContext';
+import { useVersionCheck } from '../../../hooks/useVersionCheck';
 import type { Project, LLMProvider } from '../../../types/app';
 import type { MCPServerStatus, SidebarProps } from '../types/types';
 
@@ -41,12 +42,18 @@ function Sidebar({
   isMobile,
 }: SidebarProps) {
 const { t } = useTranslation(['sidebar', 'common']);
-const { isPWA } = useDeviceSettings({ trackMobile: false });
-const { preferences, setPreference } = useUiPreferences();
-const { sidebarVisible } = preferences;
-const { setCurrentProject, mcpServerStatus } = useTaskMaster() as TaskMasterSidebarContext;
-const { tasksEnabled } = useTasksSettings();
-const paletteOps = usePaletteOps();
+  const { isPWA } = useDeviceSettings({ trackMobile: false });
+  const { updateAvailable, restartRequired, latestVersion, currentVersion, releaseInfo, installMode } = useVersionCheck(
+    'siteboon',
+    'claudecodeui',
+  );
+  const { preferences, setPreference } = useUiPreferences();
+  const { sidebarVisible } = preferences;
+  const { setCurrentProject, mcpServerStatus } = useTaskMaster() as TaskMasterSidebarContext;
+  const { tasksEnabled } = useTasksSettings();
+  const paletteOps = usePaletteOps();
+
+  const [showVersionModal, setShowVersionModal] = useState(false);
 
 const {
 isSidebarCollapsed,
@@ -207,82 +214,93 @@ t={t}
 />
 
 {isSidebarCollapsed ? (
-<SidebarCollapsed
-  onExpand={handleExpandSidebar}
-  onShowSettings={onShowSettings}
-  t={t}
-/>
-) : (
-<>
-<SidebarContent
-isPWA={isPWA}
-isMobile={isMobile}
-isLoading={isLoading}
-projects={projects}
-runningSessionsCount={runningSessionsCount}
-archivedProjects={archivedProjects}
-archivedSessions={archivedSessions}
-archivedSessionsCount={archivedSessionsCount}
-isArchivedSessionsLoading={isArchivedSessionsLoading}
-searchFilter={searchFilter}
-onSearchFilterChange={setSearchFilter}
-onClearSearchFilter={() => setSearchFilter('')}
-searchMode={searchMode}
-onSearchModeChange={(mode) => {
-setSearchMode(mode);
-if (mode === 'projects') clearConversationResults();
-}}
-conversationResults={conversationResults}
-isSearching={isSearching}
-searchProgress={searchProgress}
-onRestoreArchivedProject={restoreArchivedProject}
-onArchivedSessionClick={openArchivedSession}
-onRestoreArchivedSession={restoreArchivedSession}
-onDeleteArchivedSession={(session) => {
-showDeleteSessionConfirmation(
-session.projectId,
-session.sessionId,
-session.sessionTitle,
-session.provider,
-{ isArchived: true },
-);
-}}
-onConversationResultClick={(projectId: string | null, sessionId: string, provider: string, messageTimestamp?: string | null, messageSnippet?: string | null) => {
-const resolvedProvider = (provider || 'claude') as LLMProvider;
-const project = projectId ? projects.find(p => p.projectId === projectId) : null;
-const searchTarget = { __searchTargetTimestamp: messageTimestamp || null, __searchTargetSnippet: messageSnippet || null };
-const sessionObj = {
-id: sessionId,
-__provider: resolvedProvider,
-__projectId: projectId ?? undefined,
-...searchTarget,
-};
-if (project) {
-handleProjectSelect(project);
-const sessions = getProjectSessions(project);
-const existing = sessions.find(s => s.id === sessionId);
-if (existing) {
-handleSessionClick({ ...existing, ...searchTarget }, project.projectId);
-} else {
-handleSessionClick(sessionObj, project.projectId);
-}
-} else {
-handleSessionClick(sessionObj, projectId ?? '');
-}}}
-onRefresh={() => {
-void refreshProjects();
-}}
-isRefreshing={isRefreshing}
-onCreateProject={() => setShowNewProject(true)}
-onCollapseSidebar={handleCollapseSidebar}
-  onShowSettings={onShowSettings}
-projectListProps={projectListProps}
-t={t}
-/>
-</>
-)}
-</>
-);
+        <SidebarCollapsed
+          onExpand={handleExpandSidebar}
+          onShowSettings={onShowSettings}
+          updateAvailable={updateAvailable}
+          restartRequired={restartRequired}
+          onShowVersionModal={() => setShowVersionModal(true)}
+          t={t}
+        />
+      ) : (
+        <>
+        <SidebarContent
+            isPWA={isPWA}
+            isMobile={isMobile}
+            isLoading={isLoading}
+            projects={projects}
+            runningSessionsCount={runningSessionsCount}
+            archivedProjects={archivedProjects}
+            archivedSessions={archivedSessions}
+            archivedSessionsCount={archivedSessionsCount}
+            isArchivedSessionsLoading={isArchivedSessionsLoading}
+            searchFilter={searchFilter}
+            onSearchFilterChange={setSearchFilter}
+            onClearSearchFilter={() => setSearchFilter('')}
+            searchMode={searchMode}
+            onSearchModeChange={(mode) => {
+              setSearchMode(mode);
+              if (mode === 'projects') clearConversationResults();
+            }}
+            conversationResults={conversationResults}
+            isSearching={isSearching}
+            searchProgress={searchProgress}
+            onRestoreArchivedProject={restoreArchivedProject}
+            onArchivedSessionClick={openArchivedSession}
+            onRestoreArchivedSession={restoreArchivedSession}
+            onDeleteArchivedSession={(session) => {
+              showDeleteSessionConfirmation(
+                session.projectId,
+                session.sessionId,
+                session.sessionTitle,
+                session.provider,
+                { isArchived: true },
+              );
+            }}
+            onConversationResultClick={(projectId: string | null, sessionId: string, provider: string, messageTimestamp?: string | null, messageSnippet?: string | null) => {
+              const resolvedProvider = (provider || 'claude') as LLMProvider;
+              const project = projectId ? projects.find(p => p.projectId === projectId) : null;
+              const searchTarget = { __searchTargetTimestamp: messageTimestamp || null, __searchTargetSnippet: messageSnippet || null };
+              const sessionObj = {
+                id: sessionId,
+                __provider: resolvedProvider,
+                __projectId: projectId ?? undefined,
+                ...searchTarget,
+              };
+              if (project) {
+                handleProjectSelect(project);
+                const sessions = getProjectSessions(project);
+                const existing = sessions.find(s => s.id === sessionId);
+                if (existing) {
+                  handleSessionClick({ ...existing, ...searchTarget }, project.projectId);
+                } else {
+                  handleSessionClick(sessionObj, project.projectId);
+                }
+              } else {
+                handleSessionClick(sessionObj, projectId ?? '');
+              }
+            }}
+            onRefresh={() => {
+              void refreshProjects();
+            }}
+            isRefreshing={isRefreshing}
+            onCreateProject={() => setShowNewProject(true)}
+            onCollapseSidebar={handleCollapseSidebar}
+            updateAvailable={updateAvailable}
+            restartRequired={restartRequired}
+            releaseInfo={releaseInfo}
+            latestVersion={latestVersion}
+            currentVersion={currentVersion}
+            onShowVersionModal={() => setShowVersionModal(true)}
+            onShowSettings={onShowSettings}
+            projectListProps={projectListProps}
+            t={t}
+          />
+        </>
+      )}
+
+    </>
+  );
 }
 
 export default Sidebar;

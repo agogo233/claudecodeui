@@ -1,10 +1,12 @@
 import { useTranslation } from 'react-i18next';
+
 import { cn } from '../../../../../../lib/utils';
-import type { AgentCategory } from '../../../../types/types';
 import type { AgentCategoryTabsSectionProps } from '../types';
-import { AGENT_CATEGORIES } from '../../../../constants/constants';
+
 
 export default function AgentCategoryTabsSection({
+  categories,
+  selectedAgent,
   selectedCategory,
   onSelectCategory,
 }: AgentCategoryTabsSectionProps) {
@@ -13,7 +15,7 @@ export default function AgentCategoryTabsSection({
   return (
     <div className="flex-shrink-0 border-b border-border">
       <div role="tablist" className="flex overflow-x-auto px-2 md:px-4">
-        {AGENT_CATEGORIES.map((category) => (
+        {categories.map((category) => (
           <button
             key={category}
             role="tab"
@@ -29,7 +31,9 @@ export default function AgentCategoryTabsSection({
             {category === 'account' && t('tabs.account')}
             {category === 'permissions' && t('tabs.permissions')}
             {category === 'mcp' && t('tabs.mcpServers')}
-            {category === 'models' && 'Models'}
+{category === 'skills' && t('tabs.skills', {
+              defaultValue: selectedAgent === 'opencode' ? 'Shared Skills' : 'Skills',
+            })}
           </button>
         ))}
       </div>

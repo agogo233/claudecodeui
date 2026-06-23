@@ -75,6 +75,14 @@ const __dirname = getModuleDir(import.meta.url);
 // The server source runs from /server, while the compiled output runs from /dist-server/server.
 // Resolving the app root once keeps every repo-level lookup below aligned across both layouts.
 const APP_ROOT = findAppRoot(__dirname);
+const installMode = fs.existsSync(path.join(APP_ROOT, '.git')) ? 'git' : 'npm';
+const RUNNING_VERSION = (() => {
+    try {
+        return JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'package.json'), 'utf8')).version || null;
+    } catch {
+        return null;
+    }
+})();
 const MAX_FILE_UPLOAD_SIZE_MB = 200;
 const MAX_FILE_UPLOAD_SIZE_BYTES = MAX_FILE_UPLOAD_SIZE_MB * 1024 * 1024;
 const MAX_FILE_UPLOAD_COUNT = 20;
@@ -154,7 +162,13 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
+<<<<<<< HEAD
         timestamp: new Date().toISOString()
+=======
+        timestamp: new Date().toISOString(),
+        installMode,
+        version: RUNNING_VERSION
+>>>>>>> upstream/main
     });
 });
 

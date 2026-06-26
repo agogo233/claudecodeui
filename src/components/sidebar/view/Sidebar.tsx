@@ -217,9 +217,6 @@ t={t}
         <SidebarCollapsed
           onExpand={handleExpandSidebar}
           onShowSettings={onShowSettings}
-          updateAvailable={updateAvailable}
-          restartRequired={restartRequired}
-          onShowVersionModal={() => setShowVersionModal(true)}
           t={t}
         />
       ) : (

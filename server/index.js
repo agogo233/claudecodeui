@@ -162,13 +162,9 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
-<<<<<<< HEAD
-        timestamp: new Date().toISOString()
-=======
         timestamp: new Date().toISOString(),
         installMode,
         version: RUNNING_VERSION
->>>>>>> upstream/main
     });
 });
 

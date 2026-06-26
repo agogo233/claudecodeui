@@ -1,7 +1,7 @@
 name: "Publish Server Container Image"
 on:
-  #push:
-  workflow_dispatch: # 添加手动触发
+  push:
+  workflow_dispatch:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest

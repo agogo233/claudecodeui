@@ -61,7 +61,7 @@ export default function AgentConnectionsStep({
         </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="-mr-1 max-h-[38vh] space-y-2 overflow-y-auto pr-1">
         {providerCards.map((providerCard) => (
           <AgentConnectionCard
             key={providerCard.provider}

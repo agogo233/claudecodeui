@@ -129,7 +129,9 @@
     "colTitle": "Session",
     "colProvider": "Provider",
     "colProject": "Project",
-    "colActivity": "Last Activity"
+    "colActivity": "Last Activity",
+    "errorPreview": "Failed to load preview. Please try again.",
+    "errorCleanup": "Failed to clean up sessions. Please try again."
   },
   "notifications": {
     "title": "Notifications",

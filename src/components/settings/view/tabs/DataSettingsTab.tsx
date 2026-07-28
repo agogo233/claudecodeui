@@ -1,6 +1,6 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { AlertTriangle, EyeOff, Loader2, Trash2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { Button } from '../../../../shared/view/ui';
 import { api } from '../../../../utils/api';
 
@@ -23,31 +23,40 @@ export default function DataSettingsTab() {
     deleted: number;
     removedFromDisk: number;
   } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handlePreview = async () => {
+  const handlePreview = async (): Promise<PreviewItem[]> => {
     setLoading('preview');
     setResult(null);
+    setError(null);
     try {
       const res = await api.cleanupOldSessions(days, true);
       const data = await res.json();
       const payload = data?.data ?? data;
-      setPreviewItems((payload as { sessions: PreviewItem[] }).sessions ?? []);
-      setPreviewTotal((payload as { total: number }).total ?? 0);
+      const sessions = (payload as { sessions: PreviewItem[] }).sessions ?? [];
+      const total = (payload as { total: number }).total ?? 0;
+      setPreviewItems(sessions);
+      setPreviewTotal(total);
+      return sessions;
     } catch {
       setPreviewItems([]);
       setPreviewTotal(0);
+      setError(t('data.errorPreview'));
+      return [];
     } finally {
       setLoading(null);
     }
   };
 
   const handleCleanup = async () => {
-    if (!previewItems || previewItems.length === 0) {
-      await handlePreview();
-      if ((previewItems?.length ?? 0) === 0) return;
-    }
+    const sessions = previewItems && previewItems.length > 0
+      ? previewItems
+      : await handlePreview();
+
+    if (sessions.length === 0) return;
 
     setLoading('cleanup');
+    setError(null);
     try {
       const res = await api.cleanupOldSessions(days, false);
       const data = await res.json();
@@ -61,6 +70,7 @@ export default function DataSettingsTab() {
       setPreviewTotal(0);
     } catch {
       setResult(null);
+      setError(t('data.errorCleanup'));
     } finally {
       setLoading(null);
     }
@@ -119,6 +129,13 @@ export default function DataSettingsTab() {
           {t('data.cleanup')}
         </Button>
       </div>
+
+      {/* Error banner */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800/30 dark:bg-red-950/30 dark:text-red-300">
+          <p>{error}</p>
+        </div>
+      )}
 
       {/* Result banner */}
       {result && (

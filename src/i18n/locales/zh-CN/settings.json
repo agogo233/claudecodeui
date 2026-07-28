@@ -111,7 +111,9 @@
     "colTitle": "会话",
     "colProvider": "提供商",
     "colProject": "项目",
-    "colActivity": "最后活动"
+    "colActivity": "最后活动",
+    "errorPreview": "加载预览失败，请重试。",
+    "errorCleanup": "清理会话失败，请重试。"
   },
   "notifications": {
     "title": "通知",

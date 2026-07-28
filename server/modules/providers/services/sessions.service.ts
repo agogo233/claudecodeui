@@ -330,22 +330,27 @@ export const sessionsService = {
       };
     }
 
-    let deleted = 0;
     let removedFromDisk = 0;
+    const toDelete: string[] = [];
 
     for (const session of oldSessions) {
-      const dbDeleted = sessionsDb.deleteSessionById(session.session_id);
-      if (dbDeleted) {
-        deleted++;
-      }
-
+      let diskOk = true;
       if (session.jsonl_path) {
-        const diskRemoved = await removeFileIfExists(session.jsonl_path);
-        if (diskRemoved) {
+        try {
+          diskOk = await removeFileIfExists(session.jsonl_path);
+        } catch {
+          diskOk = false;
+        }
+        if (diskOk) {
           removedFromDisk++;
         }
       }
+      if (diskOk) {
+        toDelete.push(session.session_id);
+      }
     }
+
+    const deleted = sessionsDb.deleteSessionsByIds(toDelete);
 
     return {
       total: oldSessions.length,

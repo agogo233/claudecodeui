@@ -427,6 +427,20 @@ export const sessionsDb = {
     return db.prepare('DELETE FROM sessions WHERE session_id = ?').run(sessionId).changes > 0;
   },
 
+  deleteSessionsByIds(sessionIds: string[]): number {
+    if (sessionIds.length === 0) return 0;
+    const db = getConnection();
+    const stmt = db.prepare('DELETE FROM sessions WHERE session_id = ?');
+    const del = db.transaction((ids: string[]) => {
+      let count = 0;
+      for (const id of ids) {
+        count += stmt.run(id).changes;
+      }
+      return count;
+    });
+    return del(sessionIds);
+  },
+
   getSessionsOlderThan(days: number): SessionRow[] {
     const db = getConnection();
     return db

@@ -195,6 +195,12 @@ const builtInCommands = [
     namespace: "builtin",
     metadata: { type: "builtin" },
   },
+  {
+    name: "/compact",
+    description: "Compact conversation context to reduce token usage (Claude only)",
+    namespace: "builtin",
+    metadata: { type: "builtin" },
+  },
 ];
 
 /**
@@ -430,6 +436,12 @@ Custom commands can be created in:
       },
     };
   },
+
+  "/compact": async (args, context) => ({
+    type: "builtin",
+    action: "compact",
+    data: { args },
+  }),
 };
 
 /**

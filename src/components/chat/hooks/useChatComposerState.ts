@@ -310,6 +310,9 @@ export function useChatComposerState({
           onShowSettings?.();
           break;
 
+        case 'compact':
+          break;
+
         default:
           console.warn('Unknown built-in command action:', action);
       }
@@ -406,6 +409,26 @@ export function useChatComposerState({
         const result = (await response.json()) as CommandExecutionResult;
         if (result.type === 'builtin') {
           handleBuiltInCommand(result);
+          if (result.action === 'compact') {
+            const targetSessionId = selectedSession?.id || currentSessionId;
+            if (!targetSessionId) {
+              addMessage({
+                type: 'assistant',
+                content: 'No active session to compact. Start a conversation first.',
+                timestamp: Date.now(),
+              });
+              setInput('');
+              inputValueRef.current = '';
+              return;
+            }
+            const compactArgs = result.data?.args?.length ? ' ' + result.data.args.join(' ') : '';
+            sendMessage({
+              type: 'chat.send',
+              sessionId: targetSessionId,
+              content: '/compact' + compactArgs,
+              options: buildSendOptions('/compact'),
+            });
+          }
           if (!options?.preserveInput) {
             setInput('');
             inputValueRef.current = '';
@@ -434,8 +457,11 @@ export function useChatComposerState({
       input,
       provider,
       selectedProject,
+      selectedSession,
       addMessage,
       tokenBudget,
+      buildSendOptions,
+      sendMessage,
     ],
   );
 

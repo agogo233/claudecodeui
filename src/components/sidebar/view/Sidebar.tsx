@@ -25,6 +25,7 @@ function Sidebar({
   selectedProject,
   selectedSession,
   activeSessions,
+  attentionSessionIds,
   onProjectSelect,
   onSessionSelect,
   onNewSession,
@@ -137,55 +138,56 @@ void paletteOps.refreshProjects();
 };
 
 const projectListProps: SidebarProjectListProps = {
-projects,
-filteredProjects,
-selectedProject,
-selectedSession,
-isLoading,
-loadingProgress,
-expandedProjects,
-editingProject,
-editingName,
-initialSessionsLoaded,
-currentTime,
-editingSession,
-editingSessionName,
-deletingProjects,
-tasksEnabled,
-mcpServerStatus,
-getProjectSessions,
-loadingMoreProjects,
-activeSessions,
-forceExpanded: searchMode === 'running',
-isProjectStarred,
-onEditingNameChange: setEditingName,
-onToggleProject: toggleProject,
-onProjectSelect: handleProjectSelect,
-onToggleStarProject: toggleStarProject,
-onStartEditingProject: startEditing,
-onCancelEditingProject: cancelEditing,
-onSaveProjectName: (projectName) => {
-void saveProjectName(projectName);
-},
-onDeleteProject: requestProjectDelete,
-onSessionSelect: handleSessionClick,
-onDeleteSession: showDeleteSessionConfirmation,
-onLoadMoreSessions: loadMoreSessionsForProject,
-onNewSession,
-onEditingSessionNameChange: setEditingSessionName,
-onStartEditingSession: (sessionId, initialName) => {
-setEditingSession(sessionId);
-setEditingSessionName(initialName);
-},
-onCancelEditingSession: () => {
-setEditingSession(null);
-setEditingSessionName('');
-},
-onSaveEditingSession: (projectName: string, sessionId: string, summary: string, provider: LLMProvider) => {
-void updateSessionSummary(projectName, sessionId, summary, provider);
-},
-t,
-};
+    projects,
+    filteredProjects,
+    selectedProject,
+    selectedSession,
+    isLoading,
+    loadingProgress,
+    expandedProjects,
+    editingProject,
+    editingName,
+    initialSessionsLoaded,
+    currentTime,
+    editingSession,
+    editingSessionName,
+    deletingProjects,
+    tasksEnabled,
+    mcpServerStatus,
+    getProjectSessions,
+    loadingMoreProjects,
+    activeSessions,
+    attentionSessionIds,
+    forceExpanded: searchMode === 'running',
+    isProjectStarred,
+    onEditingNameChange: setEditingName,
+    onToggleProject: toggleProject,
+    onProjectSelect: handleProjectSelect,
+    onToggleStarProject: toggleStarProject,
+    onStartEditingProject: startEditing,
+    onCancelEditingProject: cancelEditing,
+    onSaveProjectName: (projectName) => {
+      void saveProjectName(projectName);
+    },
+    onDeleteProject: requestProjectDelete,
+    onSessionSelect: handleSessionClick,
+    onDeleteSession: showDeleteSessionConfirmation,
+    onLoadMoreSessions: loadMoreSessionsForProject,
+    onNewSession,
+    onEditingSessionNameChange: setEditingSessionName,
+    onStartEditingSession: (sessionId, initialName) => {
+      setEditingSession(sessionId);
+      setEditingSessionName(initialName);
+    },
+    onCancelEditingSession: () => {
+      setEditingSession(null);
+      setEditingSessionName('');
+    },
+    onSaveEditingSession: (projectName: string, sessionId: string, summary: string, provider: LLMProvider) => {
+      void updateSessionSummary(projectName, sessionId, summary, provider);
+    },
+    t,
+  };
 
 return (
 <>

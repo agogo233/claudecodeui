@@ -17,7 +17,7 @@ function buildPlaceholderHtml(title, message, logs = []) {
   return [
     '<!doctype html><meta charset="utf-8">',
     '<style>',
-    'html,body{margin:0;height:100%;background:#0a0a0a;color:#fafafa;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}',
+    'html,body{margin:0;height:100%;background:#0a0a0a;color:#fafafa;font:14px "Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}',
     'body{padding:28px;overflow:hidden}',
     '.shell{height:100%;display:flex;flex-direction:column;gap:16px}',
     '.box{display:flex;align-items:center;gap:10px;color:#d4d4d4;flex:0 0 auto}',

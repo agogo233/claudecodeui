@@ -126,7 +126,18 @@ export function useFileMentions({ selectedProject, input, setInput, textareaRef 
           file.name.toLowerCase().includes(textAfterAt.toLowerCase()) ||
           file.path.toLowerCase().includes(textAfterAt.toLowerCase()),
       )
-      .slice(0, 10);
+      .sort((a, b) => {
+        const aHidden = a.path.split('/').slice(0, -1).some(s => s.startsWith('.'));
+        const bHidden = b.path.split('/').slice(0, -1).some(s => s.startsWith('.'));
+        if (aHidden !== bHidden) return aHidden ? 1 : -1;
+
+        const aDepth = a.path.split('/').length;
+        const bDepth = b.path.split('/').length;
+        if (aDepth !== bDepth) return aDepth - bDepth;
+
+        return a.path.localeCompare(b.path);
+      })
+      .slice(0, 20);
 
     setFilteredFiles(matchingFiles);
   }, [input, cursorPosition, fileList]);

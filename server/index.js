@@ -571,7 +571,7 @@ function validatePathInProject(projectRoot, targetPath) {
         ? path.resolve(targetPath)
         : path.resolve(projectRoot, targetPath);
     const normalizedRoot = path.resolve(projectRoot) + path.sep;
-    if (!resolved.startsWith(normalizedRoot)) {
+    if (resolved !== path.resolve(projectRoot) && !resolved.startsWith(normalizedRoot)) {
         return { valid: false, error: 'Path must be under project root' };
     }
     return { valid: true, resolved };
@@ -807,6 +807,10 @@ app.put('/api/projects/:projectId/files/move', authenticateToken, async (req, re
 
         if (resolvedSource === resolvedDestPath) {
             return res.status(400).json({ error: 'Source and destination are the same' });
+        }
+
+        if (resolvedDestPath.startsWith(resolvedSource + path.sep)) {
+            return res.status(400).json({ error: 'Cannot move a directory into itself' });
         }
 
         let destExists = false;

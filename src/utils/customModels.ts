@@ -3,6 +3,11 @@ import type { LLMProvider } from '../types/app';
 export type CustomModel = { value: string; label: string };
 
 const STORAGE_KEY = 'custom-models';
+const MODEL_VALUE_PATTERN = /^[a-zA-Z0-9_./-]{1,100}$/;
+
+function isValidModelValue(value: string): boolean {
+  return MODEL_VALUE_PATTERN.test(value);
+}
 
 function readAll(): Record<string, CustomModel[]> {
   try {
@@ -22,6 +27,7 @@ export function getCustomModels(provider: LLMProvider): CustomModel[] {
 }
 
 export function addCustomModel(provider: LLMProvider, value: string, label: string): CustomModel[] {
+  if (!isValidModelValue(value)) return readAll()[provider] || [];
   const all = readAll();
   const list = all[provider] || [];
   list.push({ value, label });
@@ -43,6 +49,7 @@ export function updateCustomModel(
   newValue: string,
   newLabel: string,
 ): CustomModel[] {
+  if (!isValidModelValue(newValue)) return readAll()[provider] || [];
   const all = readAll();
   const list = all[provider] || [];
   const idx = list.findIndex((m) => m.value === oldValue);

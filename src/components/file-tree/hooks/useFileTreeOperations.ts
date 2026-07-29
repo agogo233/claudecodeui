@@ -413,8 +413,9 @@ export function useFileTreeOperations({
     }
 
     if (action === 'autoRename') {
-      const ext = name.includes('.') ? name.slice(name.lastIndexOf('.')) : '';
-      const base = ext ? name.slice(0, name.lastIndexOf('.')) : name;
+      const dotIndex = name.lastIndexOf('.');
+      const ext = dotIndex > 0 ? name.slice(dotIndex) : '';
+      const base = dotIndex > 0 ? name.slice(0, dotIndex) : name;
 
       for (let i = 1; i <= 100; i++) {
         const newName = `${base}_${i}${ext}`;

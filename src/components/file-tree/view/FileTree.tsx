@@ -136,8 +136,8 @@ export default function FileTree({ selectedProject, onFileOpen }: FileTreeProps)
         upload.handleDragLeave(e);
       }}
       onDrop={(e) => {
-        const hasTextPlain = Array.from(e.dataTransfer.types).includes('text/plain');
-        if (hasTextPlain && e.dataTransfer.getData('text/plain')) {
+        const hasItemType = e.dataTransfer.types.includes('application/x-item-type');
+        if (hasItemType) {
           operations.handleDrop(e, '');
         } else {
           upload.handleDrop(e);

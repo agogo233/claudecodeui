@@ -14,13 +14,11 @@ import cors from 'cors';
 import mime from 'mime-types';
 import Database from 'better-sqlite3';
 
-import { AppError, WORKSPACES_ROOT, getOpenCodeDatabasePath, validateWorkspacePath } from '@/shared/utils.js';
+import { AppError, WORKSPACES_ROOT, getOpenCodeDatabasePath, validateWorkspacePath, findApplicationRoot, getModuleDirectory } from '@/shared/utils.js';
 import { closeSessionsWatcher, initializeSessionsWatcher } from '@/modules/providers/index.js';
 import { createWebSocketServer } from '@/modules/websocket/index.js';
 
 import { getConnectableHost } from '../shared/networkHosts.js';
-
-import { findAppRoot, getModuleDir } from './utils/runtime-paths.js';
 import {
     queryClaudeSDK,
     abortClaudeSDKSession,
@@ -70,10 +68,10 @@ import { validateApiKey, authenticateToken, authenticateWebSocket } from './midd
 import { IS_PLATFORM } from './constants/config.js';
 import { c } from './utils/colors.js';
 
-const __dirname = getModuleDir(import.meta.url);
+const __dirname = getModuleDirectory(import.meta.url);
 // The server source runs from /server, while the compiled output runs from /dist-server/server.
 // Resolving the app root once keeps every repo-level lookup below aligned across both layouts.
-const APP_ROOT = findAppRoot(__dirname);
+const APP_ROOT = findApplicationRoot(__dirname);
 const installMode = fs.existsSync(path.join(APP_ROOT, '.git')) ? 'git' : 'npm';
 const RUNNING_VERSION = (() => {
     try {

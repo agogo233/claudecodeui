@@ -64,4 +64,4 @@ USER node
 
 EXPOSE 3001
 
-CMD ["node", "/app/dist-server/server/cli.js", "start", "--port", "3001"]
+CMD ["node", "/app/dist-server/server/modules/cli/cli.js", "start", "--port", "3001"]

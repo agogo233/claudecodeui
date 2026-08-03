@@ -71,7 +71,8 @@ const useWebSocketProviderState = (): WebSocketContextType => {
   const [latestMessage, setLatestMessage] = useState<ServerEvent | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-const { isLoading: isAuthLoading, token, user } = useAuth();
+  const reconnectAttemptRef = useRef(0);
+  const { isLoading: isAuthLoading, token, user } = useAuth();
 
   const dispatch = useCallback((event: ServerEvent) => {
     for (const listener of listenersRef.current) {
@@ -112,6 +113,7 @@ const { isLoading: isAuthLoading, token, user } = useAuth();
   const connect = useCallback(() => {
     if (unmountedRef.current) return; // Prevent connection if unmounted
     if (!IS_PLATFORM && (isAuthLoading || !user)) return;
+    reconnectAttemptRef.current = 0; // Reset reconnect counter on fresh connection attempt
     try {
       const wsUrl = buildWebSocketUrl(token);
       if (!wsUrl) return console.warn('No authentication token found for WebSocket connection');

@@ -4,3 +4,5 @@ export type ReleaseInfo = {
   htmlUrl: string;
   publishedAt: string;
 };
+
+export type InstallMode = 'git' | 'npm';

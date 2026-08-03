@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { authenticatedFetch } from "../../../utils/api";
 import { ReleaseInfo } from "../../../types/sharedTypes";
 import { copyTextToClipboard } from "../../../utils/clipboard";
-import type { InstallMode } from "../../../hooks/useVersionCheck";
+import type { InstallMode } from "../../../types/sharedTypes";
 import { IS_PLATFORM } from "../../../constants/config";
 
 interface VersionUpgradeModalProps {

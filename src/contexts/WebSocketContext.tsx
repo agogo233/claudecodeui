@@ -87,11 +87,20 @@ const useWebSocketProviderState = (): WebSocketContextType => {
 
   useEffect(() => {
     unmountedRef.current = false;
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        connect();
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
     if (!IS_PLATFORM && (isAuthLoading || !user)) {
-      return undefined;
+      return () => {
+        window.removeEventListener('pageshow', handlePageShow);
+      };
     }
     connect();
     return () => {
+      window.removeEventListener('pageshow', handlePageShow);
       unmountedRef.current = true;
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -165,8 +174,8 @@ const useWebSocketProviderState = (): WebSocketContextType => {
         }, jitter);
       };
 
-      websocket.onerror = (error) => {
-        console.error('WebSocket error:', error);
+      websocket.onerror = () => {
+        // onclose handles all reconnect logic
       };
     } catch (error) {
       console.error('Error creating WebSocket connection:', error);

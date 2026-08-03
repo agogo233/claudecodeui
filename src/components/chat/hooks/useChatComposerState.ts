@@ -48,6 +48,10 @@ interface UseChatComposerStateArgs {
    */
   currentProviderModel: string;
   currentProviderEffort: string;
+  claudeModel: string;
+  cursorModel: string;
+  codexModel: string;
+  opencodeModel: string;
   isLoading: boolean;
   processingSessions?: SessionActivityMap;
   canAbortSession: boolean;
@@ -243,6 +247,10 @@ export function useChatComposerState({
   resolvePermissionModeForProvider,
   currentProviderModel,
   currentProviderEffort,
+  claudeModel,
+  cursorModel,
+  codexModel,
+  opencodeModel,
   isLoading,
   processingSessions,
   canAbortSession,

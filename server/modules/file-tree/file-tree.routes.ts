@@ -91,7 +91,12 @@ function createRouteHandler(
       await operation(request, response);
     } catch (error) {
       if (error instanceof AppError) {
-        response.status(error.statusCode).json({ error: error.message });
+        const details = error.details && typeof error.details === 'object'
+          ? error.details as Record<string, unknown>
+          : null;
+        response.status(error.statusCode).json(
+          details ? { error: error.message, ...details } : { error: error.message },
+        );
         return;
       }
 
@@ -198,6 +203,23 @@ export function createFileTreeRouter(
       projectId: readProjectId(request),
       oldPath: readRequiredString(body.oldPath, 'oldPath'),
       newName: readRequiredString(body.newName, 'newName'),
+    }));
+  }, logger));
+
+  router.put('/projects/:projectId/files/move', createRouteHandler(async (request, response) => {
+    const body = readBody(request);
+    if (!body.sourcePath || body.destDir === undefined) {
+      throw new AppError('sourcePath and destDir are required', {
+        code: 'FILE_TREE_MOVE_FIELDS_REQUIRED',
+        statusCode: 400,
+      });
+    }
+    response.json(await services.moveEntry({
+      projectId: readProjectId(request),
+      sourcePath: readRequiredString(body.sourcePath, 'sourcePath'),
+      destDir: readRequiredString(body.destDir, 'destDir'),
+      overwrite: body.overwrite === true,
+      newName: readOptionalString(body.newName),
     }));
   }, logger));
 

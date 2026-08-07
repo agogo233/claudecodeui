@@ -1054,6 +1054,18 @@ export type FileTreeServices = {
     newName: string;
     message: string;
   }>;
+  moveEntry(input: {
+    projectId: string;
+    sourcePath: string;
+    destDir: string;
+    overwrite: boolean;
+    newName: string | null;
+  }): Promise<{
+    success: true;
+    sourcePath: string;
+    destPath: string;
+    message: string;
+  }>;
   deleteEntry(input: { projectId: string; targetPath: string }): Promise<{
     success: true;
     path: string;

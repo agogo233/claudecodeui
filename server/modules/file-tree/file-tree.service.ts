@@ -30,8 +30,13 @@ const COMMON_WORKSPACE_DIRECTORY_NAMES = [
 
 type FileTreeEntryFilter = (entryPath: string, isDirectory: boolean) => boolean;
 
-function createFileTreeError(message: string, statusCode: number, code: string): AppError {
-  return new AppError(message, { statusCode, code });
+function createFileTreeError(
+  message: string,
+  statusCode: number,
+  code: string,
+  details?: unknown,
+): AppError {
+  return new AppError(message, { statusCode, code, details });
 }
 
 function readErrorCode(error: unknown): string | null {
@@ -508,6 +513,89 @@ export function createFileTreeService(dependencies: FileTreeServiceDependencies)
         newPath: resolvedNewPath,
         newName: input.newName,
         message: 'Renamed successfully',
+      };
+    },
+
+    async moveEntry(input) {
+      const projectRoot = await resolveProjectRoot(input.projectId);
+      const resolvedSource = resolvePathInsideProject(projectRoot, input.sourcePath);
+
+      try {
+        await fileSystem.access(resolvedSource);
+      } catch {
+        throw createFileTreeError('File or directory not found', 404, 'FILE_TREE_ENTRY_NOT_FOUND');
+      }
+
+      const resolvedDestDir = !input.destDir || input.destDir === '.' || input.destDir === './'
+        ? path.resolve(projectRoot)
+        : resolvePathInsideProject(projectRoot, input.destDir);
+
+      try {
+        await fileSystem.access(resolvedDestDir);
+      } catch {
+        throw createFileTreeError('Destination directory not found', 404, 'FILE_TREE_DEST_NOT_FOUND');
+      }
+
+      if (input.newName) {
+        validateFilename(input.newName);
+      }
+
+      const sourceName = input.newName || path.basename(resolvedSource);
+      const finalDestPath = resolvePathInsideProject(projectRoot, path.join(resolvedDestDir, sourceName));
+
+      if (resolvedSource === finalDestPath) {
+        throw createFileTreeError('Source and destination are the same', 400, 'INVALID_MOVE_TARGET');
+      }
+
+      if (finalDestPath.startsWith(resolvedSource + path.sep)) {
+        throw createFileTreeError('Cannot move an entry into itself', 400, 'CIRCULAR_MOVE');
+      }
+
+      let destExists = false;
+      try {
+        await fileSystem.access(finalDestPath);
+        destExists = true;
+      } catch {
+        destExists = false;
+      }
+
+      if (destExists) {
+        if (!input.overwrite) {
+          throw createFileTreeError(
+            'A file or directory with this name already exists',
+            409,
+            'FILE_TREE_ENTRY_EXISTS',
+            { conflict: true, name: sourceName },
+          );
+        }
+        if (resolvedSource.startsWith(finalDestPath + path.sep)) {
+          throw createFileTreeError('Cannot move an entry over its parent', 400, 'CIRCULAR_MOVE');
+        }
+        try {
+          await fileSystem.removeDirectory(finalDestPath);
+        } catch (error) {
+          mapFileSystemError(error, {
+            EACCES: { message: 'Permission denied', statusCode: 403 },
+            ENOENT: { message: 'File or directory not found', statusCode: 404 },
+          });
+        }
+      }
+
+      try {
+        await fileSystem.rename(resolvedSource, finalDestPath);
+      } catch (error) {
+        mapFileSystemError(error, {
+          EACCES: { message: 'Permission denied', statusCode: 403 },
+          ENOENT: { message: 'File or directory not found', statusCode: 404 },
+          EXDEV: { message: 'Cannot move across different filesystems', statusCode: 400 },
+        });
+      }
+
+      return {
+        success: true,
+        sourcePath: resolvedSource,
+        destPath: finalDestPath,
+        message: 'Moved successfully',
       };
     },
 

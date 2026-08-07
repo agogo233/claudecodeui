@@ -7,6 +7,7 @@ import express, { type RequestHandler } from 'express';
 
 import { createFileTreeRouter } from '@/modules/file-tree/file-tree.routes.js';
 import type { FileTreeServices } from '@/shared/types.js';
+import { AppError } from '@/shared/utils.js';
 
 function createFakeServices(overrides: Partial<FileTreeServices> = {}): FileTreeServices {
   const unexpectedOperation = async (): Promise<never> => {
@@ -22,6 +23,7 @@ function createFakeServices(overrides: Partial<FileTreeServices> = {}): FileTree
     listProjectFiles: unexpectedOperation,
     createEntry: unexpectedOperation,
     renameEntry: unexpectedOperation,
+    moveEntry: unexpectedOperation,
     deleteEntry: unexpectedOperation,
     storeUploadedFiles: unexpectedOperation,
     ...overrides,
@@ -154,4 +156,92 @@ test('create route rejects invalid entry types without calling the service', asy
   });
 
   assert.equal(createCalled, false);
+});
+
+test('move route parses the transport payload before invoking the service', async () => {
+  const inputs: Parameters<FileTreeServices['moveEntry']>[0][] = [];
+  const services = createFakeServices({
+    moveEntry: async (input) => {
+      inputs.push(input);
+      return {
+        success: true,
+        sourcePath: '/workspace/project/src/example.ts',
+        destPath: '/workspace/project/docs/example.ts',
+        message: 'Moved successfully',
+      };
+    },
+  });
+
+  await withFileTreeServer(services, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/file-tree/projects/project-1/files/move`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        sourcePath: 'src/example.ts',
+        destDir: 'docs',
+        overwrite: true,
+        newName: 'renamed.ts',
+      }),
+    });
+
+    assert.equal(response.status, 200);
+  });
+
+  assert.deepEqual(inputs, [{
+    projectId: 'project-1',
+    sourcePath: 'src/example.ts',
+    destDir: 'docs',
+    overwrite: true,
+    newName: 'renamed.ts',
+  }]);
+});
+
+test('move route requires sourcePath and destDir without calling the service', async () => {
+  let moveCalled = false;
+  const services = createFakeServices({
+    moveEntry: async () => {
+      moveCalled = true;
+      throw new Error('moveEntry should not run for missing input');
+    },
+  });
+
+  await withFileTreeServer(services, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/file-tree/projects/project-1/files/move`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sourcePath: 'src/example.ts' }),
+    });
+    const payload = await response.json() as { error: string };
+
+    assert.equal(response.status, 400);
+    assert.equal(payload.error, 'sourcePath and destDir are required');
+  });
+
+  assert.equal(moveCalled, false);
+});
+
+test('move route surfaces conflict details alongside the error message', async () => {
+  const services = createFakeServices({
+    moveEntry: async () => {
+      throw new AppError('A file or directory with this name already exists', {
+        statusCode: 409,
+        code: 'FILE_TREE_ENTRY_EXISTS',
+        details: { conflict: true, name: 'example.ts' },
+      });
+    },
+  });
+
+  await withFileTreeServer(services, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/file-tree/projects/project-1/files/move`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sourcePath: 'src/example.ts', destDir: 'docs' }),
+    });
+    const payload = await response.json() as { error: string; conflict: boolean; name: string };
+
+    assert.equal(response.status, 409);
+    assert.equal(payload.conflict, true);
+    assert.equal(payload.name, 'example.ts');
+    assert.equal(payload.error, 'A file or directory with this name already exists');
+  });
 });

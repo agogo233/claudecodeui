@@ -274,7 +274,7 @@ export const api = {
     }),
 
   moveFile: (projectId, { sourcePath, destDir, overwrite, newName }) =>
-    authenticatedFetch(`/api/projects/${projectId}/files/move`, {
+    authenticatedFetch(`/api/file-tree/projects/${projectId}/files/move`, {
       method: 'PUT',
       body: JSON.stringify({ sourcePath, destDir, overwrite, newName }),
     }),

@@ -5,7 +5,6 @@ import {
   CLAUDE_MODELS,
   CODEX_MODELS,
   CURSOR_MODELS,
-  GEMINI_MODELS,
   OPENCODE_MODELS,
 } from '../../../../../../../../public/modelConstants';
 import { Button, Input } from '../../../../../../../shared/view/ui';
@@ -25,7 +24,6 @@ type ModelsContentProps = {
 function getBuiltinModels(agent: AgentProvider) {
   if (agent === 'claude') return CLAUDE_MODELS;
   if (agent === 'codex') return CODEX_MODELS;
-  if (agent === 'gemini') return GEMINI_MODELS;
   if (agent === 'cursor') return CURSOR_MODELS;
   if (agent === 'opencode') return OPENCODE_MODELS;
   return CLAUDE_MODELS;

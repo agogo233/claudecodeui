@@ -371,6 +371,7 @@ export function useFileTreeOperations({
         sourcePath,
         destDir,
         overwrite,
+        newName: undefined,
       });
 
       if (response.status === 409) {

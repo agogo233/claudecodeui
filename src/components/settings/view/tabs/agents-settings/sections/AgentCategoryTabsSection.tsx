@@ -34,6 +34,7 @@ export default function AgentCategoryTabsSection({
 {category === 'skills' && t('tabs.skills', {
               defaultValue: selectedAgent === 'opencode' ? 'Shared Skills' : 'Skills',
             })}
+            {category === 'models' && t('tabs.models')}
           </button>
         ))}
       </div>

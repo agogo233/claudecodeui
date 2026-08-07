@@ -406,7 +406,6 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, s
   if (prevProps.message.isStreaming !== nextProps.message.isStreaming) return false;
   if (prevProps.provider !== nextProps.provider) return false;
   if (prevProps.showThinking !== nextProps.showThinking) return false;
-  if (prevProps.autoExpandTools !== nextProps.autoExpandTools) return false;
   if (prevProps.showRawParameters !== nextProps.showRawParameters) return false;
   // For prevMessage, only compare type to avoid re-renders on minor changes
   if (prevProps.prevMessage?.type !== nextProps.prevMessage?.type) return false;

@@ -4,7 +4,8 @@
     "account": "Аккаунт",
     "permissions": "Разрешения",
     "mcpServers": "MCP серверы",
-    "appearance": "Внешний вид"
+    "appearance": "Внешний вид",
+    "models": "Модели"
   },
   "account": {
     "title": "Аккаунт",

@@ -4,7 +4,8 @@
     "account": "Compte",
     "permissions": "Permissions",
     "mcpServers": "Serveurs MCP",
-    "appearance": "Apparence"
+    "appearance": "Apparence",
+    "models": "Modèles"
   },
   "account": {
     "title": "Compte",

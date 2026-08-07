@@ -4,7 +4,8 @@
     "account": "Hesap",
     "permissions": "İzinler",
     "mcpServers": "MCP Sunucuları",
-    "appearance": "Görünüm"
+    "appearance": "Görünüm",
+    "models": "Modeller"
   },
   "account": {
     "title": "Hesap",

@@ -4,7 +4,8 @@
     "account": "Account",
     "permissions": "Permessi",
     "mcpServers": "Server MCP",
-    "appearance": "Aspetto"
+    "appearance": "Aspetto",
+    "models": "Modelli"
   },
   "account": {
     "title": "Account",

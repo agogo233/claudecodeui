@@ -5,7 +5,8 @@
     "permissions": "Permisos",
     "mcpServers": "Servidores MCP",
     "skills": "Skills",
-    "appearance": "Apariencia"
+    "appearance": "Apariencia",
+    "models": "Modelos"
   },
   "account": {
     "title": "Cuenta",

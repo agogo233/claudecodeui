@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Tooltip, PillBar, Pill } from '../../../../shared/view/ui';
 import type { AppTab } from '../../../../types/app';
 import { usePlugins } from '../../../../contexts/PluginsContext';
+import { useTaskMaster } from '../../../task-master/context/TaskMasterContext';
+import TaskTabProgress from '../../../task-master/view/TaskTabProgress';
 import PluginIcon from '../../../plugins/view/PluginIcon';
 
 type MainContentTabSwitcherProps = {
@@ -60,6 +62,14 @@ export default function MainContentTabSwitcher({
 }: MainContentTabSwitcherProps) {
   const { t } = useTranslation();
   const { plugins } = usePlugins();
+  const { tasks } = useTaskMaster();
+
+  const doneTaskCount = Array.isArray(tasks) ? tasks.filter((task) => task.status === 'done').length : 0;
+  const totalTaskCount = Array.isArray(tasks) ? tasks.length : 0;
+  const taskProgress =
+    totalTaskCount > 0
+      ? `${doneTaskCount}/${totalTaskCount} (${Math.round((doneTaskCount / totalTaskCount) * 100)}%)`
+      : null;
 
   const builtInTabs: BuiltInTab[] = [
     ...BASE_TABS,
@@ -84,9 +94,11 @@ export default function MainContentTabSwitcher({
       {tabs.map((tab) => {
         const isActive = tab.id === activeTab;
         const displayLabel = tab.kind === 'builtin' ? t(tab.labelKey) : tab.label;
+        const tooltipContent =
+          tab.kind === 'builtin' && tab.id === 'tasks' && taskProgress ? `${displayLabel} · ${taskProgress}` : displayLabel;
 
         return (
-          <Tooltip key={tab.id} content={displayLabel} position="bottom">
+          <Tooltip key={tab.id} content={tooltipContent} position="bottom">
             <Pill
               isActive={isActive}
               onClick={() => setActiveTab(tab.id)}
@@ -102,6 +114,9 @@ export default function MainContentTabSwitcher({
                 />
               )}
               <span className="hidden lg:inline">{displayLabel}</span>
+              {tab.kind === 'builtin' && tab.id === 'tasks' && (
+                <TaskTabProgress done={doneTaskCount} total={totalTaskCount} />
+              )}
             </Pill>
           </Tooltip>
         );

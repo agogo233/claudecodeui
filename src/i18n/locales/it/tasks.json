@@ -1,4 +1,7 @@
 {
+  "detail": {
+    "subtasks": "Sotto-attività"
+  },
   "notConfigured": {
     "title": "TaskMaster AI non è configurato",
     "description": "TaskMaster aiuta a suddividere progetti complessi in attività gestibili con assistenza AI",
@@ -128,6 +131,7 @@
     "done": "Completata",
     "blocked": "Bloccata",
     "deferred": "Rimandata",
+    "review": "In revisione",
     "cancelled": "Annullata"
   },
   "priorities": {

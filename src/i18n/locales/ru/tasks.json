@@ -1,4 +1,7 @@
 {
+  "detail": {
+    "subtasks": "Подзадачи"
+  },
   "notConfigured": {
     "title": "TaskMaster AI не настроен",
     "description": "TaskMaster помогает разбивать сложные проекты на управляемые задачи с помощью AI",
@@ -128,6 +131,7 @@
     "done": "Выполнено",
     "blocked": "Заблокировано",
     "deferred": "Отложено",
+    "review": "На проверке",
     "cancelled": "Отменено"
   },
   "priorities": {

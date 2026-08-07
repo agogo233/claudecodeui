@@ -13,6 +13,8 @@ import {
   Save,
   X,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
 import { cn } from '../../../lib/utils';
 import { copyTextToClipboard } from '../../../utils/clipboard';
 import { api } from '../../../utils/api';
@@ -64,6 +66,7 @@ export default function TaskDetailModal({
   onTaskClick = null,
 }: TaskDetailModalProps) {
   const { currentProject, refreshTasks } = useTaskMaster();
+  const { t } = useTranslation('tasks');
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -263,6 +266,32 @@ export default function TaskDetailModal({
               )}
             </div>
           </div>
+
+          {Array.isArray(task.subtasks) && task.subtasks.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('detail.subtasks')}</label>
+              <div className="space-y-1">
+                {task.subtasks.map((subtask) => {
+                  const SubtaskIcon = getStatusIcon(subtask.status);
+                  return (
+                    <button
+                      key={String(subtask.id)}
+                      onClick={() => onTaskClick?.({ id: subtask.id })}
+                      className="flex w-full items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-left transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                    >
+                      <SubtaskIcon className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                      <span className="min-w-0 flex-1 truncate text-sm text-gray-800 dark:text-gray-200">
+                        {subtask.title || `Task ${subtask.id}`}
+                      </span>
+                      <span className="shrink-0 text-xs capitalize text-gray-500 dark:text-gray-400">
+                        {t(`statuses.${subtask.status ?? 'pending'}`)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>

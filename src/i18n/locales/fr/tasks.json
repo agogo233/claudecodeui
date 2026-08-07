@@ -1,4 +1,7 @@
 {
+  "detail": {
+    "subtasks": "Sous-tâches"
+  },
   "notConfigured": {
     "title": "TaskMaster AI n'est pas configuré",
     "description": "TaskMaster aide à décomposer des projets complexes en tâches gérables avec une assistance IA",
@@ -128,6 +131,7 @@
     "done": "Terminé",
     "blocked": "Bloqué",
     "deferred": "Différé",
+    "review": "En révision",
     "cancelled": "Annulé"
   },
   "priorities": {

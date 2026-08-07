@@ -1,4 +1,7 @@
 {
+  "detail": {
+    "subtasks": "하위 작업"
+  },
   "notConfigured": {
     "title": "TaskMaster AI가 설정되지 않았습니다",
     "description": "TaskMaster는 AI 기반 지원으로 복잡한 프로젝트를 관리하기 쉬운 작업 단위로 나눠줍니다",
@@ -128,6 +131,7 @@
     "done": "완료",
     "blocked": "차단됨",
     "deferred": "보류",
+    "review": "검토",
     "cancelled": "취소됨"
   },
   "priorities": {

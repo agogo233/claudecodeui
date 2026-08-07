@@ -1,4 +1,7 @@
 {
+  "detail": {
+    "subtasks": "サブタスク"
+  },
   "notConfigured": {
     "title": "TaskMaster AIが設定されていません",
     "description": "TaskMasterは、AIを活用した支援により、複雑なプロジェクトを管理しやすいタスクに分解するのに役立ちます",
@@ -128,6 +131,7 @@
     "done": "完了",
     "blocked": "ブロック中",
     "deferred": "延期",
+    "review": "レビュー",
     "cancelled": "キャンセル"
   },
   "priorities": {

@@ -1,4 +1,7 @@
 {
+  "detail": {
+    "subtasks": "Alt görevler"
+  },
   "notConfigured": {
     "title": "TaskMaster AI yapılandırılmamış",
     "description": "TaskMaster, karmaşık projeleri AI destekli yardımla yönetilebilir görevlere böler",
@@ -128,6 +131,7 @@
     "done": "Tamamlandı",
     "blocked": "Engellendi",
     "deferred": "Ertelendi",
+    "review": "İncelemede",
     "cancelled": "İptal Edildi"
   },
   "priorities": {

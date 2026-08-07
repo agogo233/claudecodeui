@@ -1,4 +1,7 @@
 {
+  "detail": {
+    "subtasks": "子任務"
+  },
   "notConfigured": {
     "title": "TaskMaster AI 尚未設定",
     "description": "TaskMaster 協助將複雜的專案分解為可管理的任務，搭配 AI 驅動的輔助功能",
@@ -128,6 +131,7 @@
     "done": "已完成",
     "blocked": "已封鎖",
     "deferred": "已延後",
+    "review": "審查",
     "cancelled": "已取消"
   },
   "priorities": {

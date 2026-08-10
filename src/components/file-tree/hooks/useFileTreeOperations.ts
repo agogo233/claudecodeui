@@ -470,6 +470,9 @@ export function useFileTreeOperations({
   }, [hoveredDir]);
 
   const handleDrop = useCallback((e: React.DragEvent, targetDir: string) => {
+    if (Array.from(e.dataTransfer.types).includes('Files')) {
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     setHoveredDir(null);

@@ -252,9 +252,21 @@ export default function FileTree({ selectedProject, onFileOpen }: FileTreeProps)
           dragItem={operations.dragItem}
           hoveredDir={operations.hoveredDir}
           onDragStart={operations.handleDragStart}
-          onDragOver={operations.handleDragOver}
+          onDragOver={(e, dirPath) => {
+            if (Array.from(e.dataTransfer.types).includes('Files')) {
+              upload.handleItemDragOver(e);
+              return;
+            }
+            operations.handleDragOver(e, dirPath);
+          }}
           onDragLeave={operations.handleDragLeave}
-          onDrop={operations.handleDrop}
+          onDrop={(e, targetDir) => {
+            if (Array.from(e.dataTransfer.types).includes('Files')) {
+              void upload.handleItemDrop(e, targetDir);
+              return;
+            }
+            operations.handleDrop(e, targetDir);
+          }}
           onDragEnd={operations.handleDragEnd}
         />
       </ScrollArea>

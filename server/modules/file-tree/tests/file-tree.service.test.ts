@@ -9,6 +9,7 @@ import type {
   FileTreeFileSystem,
   FileTreeServiceDependencies,
   FileTreeStats,
+  FileTreeUploadedFile,
 } from '@/shared/types.js';
 import { AppError } from '@/shared/utils.js';
 
@@ -428,6 +429,166 @@ test('moveEntry maps cross-filesystem rename errors to a 400', async () => {
       && error.statusCode === 400
       && error.message === 'Cannot move across different filesystems',
   );
+});
+
+function makeUploadedFile(name: string, temp: string): FileTreeUploadedFile {
+  return {
+    originalName: name,
+    temporaryPath: temp,
+    size: 42,
+    mimeType: 'text/plain',
+  };
+}
+
+function uploadInput(projectRoot: string, targetPath: string, relativePaths: string[], files: FileTreeUploadedFile[]) {
+  return {
+    projectId: 'project-1',
+    targetPath,
+    relativePaths,
+    requestedFileCount: files.length,
+    files,
+  };
+}
+
+test('storeUploadedFiles writes files that do not yet exist at the destination', async () => {
+  const projectRoot = path.resolve('file-tree-upload-test');
+  const fileA = makeUploadedFile('a.txt', '/tmp/a');
+  const fileB = makeUploadedFile('b.txt', '/tmp/b');
+  const copiedPaths: string[] = [];
+  const deletedPaths: string[] = [];
+  const fileSystem = createFakeFileSystem({
+    access: async (candidatePath) => {
+      if (candidatePath === projectRoot) return;
+      throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+    },
+    copyFile: async (sourcePath) => {
+      copiedPaths.push(sourcePath);
+    },
+    unlink: async (candidatePath) => {
+      deletedPaths.push(candidatePath);
+    },
+  });
+  const service = createFileTreeService(createDependencies(fileSystem, projectRoot));
+
+  const result = await service.storeUploadedFiles(uploadInput(projectRoot, '', ['a.txt', 'b.txt'], [fileA, fileB]));
+
+  assert.equal(result.success, true);
+  assert.equal(result.uploadedCount, 2);
+  assert.equal(result.conflicts.length, 0);
+  assert.deepEqual(copiedPaths.sort(), ['/tmp/a', '/tmp/b'].sort());
+  assert.deepEqual(deletedPaths.sort(), ['/tmp/a', '/tmp/b'].sort());
+});
+
+test('storeUploadedFiles skips files whose destination already exists and returns them as conflicts', async () => {
+  const projectRoot = path.resolve('file-tree-upload-conflict-test');
+  const existingPath = path.join(projectRoot, 'a.txt');
+  const fileA = makeUploadedFile('a.txt', '/tmp/a');
+  const fileB = makeUploadedFile('b.txt', '/tmp/b');
+  const copiedPaths: string[] = [];
+  const deletedPaths: string[] = [];
+  const fileSystem = createFakeFileSystem({
+    access: async (candidatePath) => {
+      if (candidatePath === projectRoot || candidatePath === existingPath) return;
+      throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+    },
+    copyFile: async (sourcePath) => {
+      copiedPaths.push(sourcePath);
+    },
+    unlink: async (candidatePath) => {
+      deletedPaths.push(candidatePath);
+    },
+  });
+  const service = createFileTreeService(createDependencies(fileSystem, projectRoot));
+
+  const result = await service.storeUploadedFiles(uploadInput(projectRoot, '', ['a.txt', 'b.txt'], [fileA, fileB]));
+
+  assert.equal(result.success, true);
+  assert.equal(result.uploadedCount, 1);
+  assert.deepEqual(result.conflicts, ['a.txt']);
+  assert.deepEqual(copiedPaths, ['/tmp/b']);
+  assert.deepEqual(deletedPaths.sort(), ['/tmp/a', '/tmp/b'].sort());
+});
+
+test('storeUploadedFiles reports all files as conflicts when every destination exists', async () => {
+  const projectRoot = path.resolve('file-tree-upload-all-conflict-test');
+  const aPath = path.join(projectRoot, 'a.txt');
+  const bPath = path.join(projectRoot, 'b.txt');
+  const fileA = makeUploadedFile('a.txt', '/tmp/a');
+  const fileB = makeUploadedFile('b.txt', '/tmp/b');
+  let copyFileCalled = false;
+  const deletedPaths: string[] = [];
+  const fileSystem = createFakeFileSystem({
+    access: async (candidatePath) => {
+      if (candidatePath === projectRoot || candidatePath === aPath || candidatePath === bPath) return;
+      throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+    },
+    copyFile: async () => {
+      copyFileCalled = true;
+    },
+    unlink: async (candidatePath) => {
+      deletedPaths.push(candidatePath);
+    },
+  });
+  const service = createFileTreeService(createDependencies(fileSystem, projectRoot));
+
+  const result = await service.storeUploadedFiles(uploadInput(projectRoot, '', ['a.txt', 'b.txt'], [fileA, fileB]));
+
+  assert.equal(result.success, true);
+  assert.equal(result.uploadedCount, 0);
+  assert.deepEqual(result.conflicts, ['a.txt', 'b.txt']);
+  assert.equal(copyFileCalled, false);
+  assert.deepEqual(deletedPaths.sort(), ['/tmp/a', '/tmp/b'].sort());
+});
+
+test('storeUploadedFiles propagates access permission errors instead of treating them as missing destinations', async () => {
+  const projectRoot = path.resolve('file-tree-upload-eacces-test');
+  const destinationPath = path.join(projectRoot, 'a.txt');
+  const fileA = makeUploadedFile('a.txt', '/tmp/a');
+  const fileSystem = createFakeFileSystem({
+    access: async (candidatePath) => {
+      if (candidatePath === projectRoot) return;
+      if (candidatePath === destinationPath) {
+        throw Object.assign(new Error('permission'), { code: 'EACCES' });
+      }
+      throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+    },
+    unlink: async () => undefined,
+  });
+  const service = createFileTreeService(createDependencies(fileSystem, projectRoot));
+
+  await assert.rejects(
+    service.storeUploadedFiles(uploadInput(projectRoot, '', ['a.txt'], [fileA])),
+    (error: unknown) => String((error as { code?: string }).code) === 'EACCES',
+  );
+});
+
+test('storeUploadedFiles detects conflicts when the target directory is a subdirectory', async () => {
+  const projectRoot = path.resolve('file-tree-upload-subdir-test');
+  const subDir = path.join(projectRoot, 'subdir');
+  const existingPath = path.join(subDir, 'a.txt');
+  const fileA = makeUploadedFile('a.txt', '/tmp/a');
+  const fileB = makeUploadedFile('b.txt', '/tmp/b');
+  const copiedPaths: string[] = [];
+  const fileSystem = createFakeFileSystem({
+    access: async (candidatePath) => {
+      if (candidatePath === projectRoot || candidatePath === subDir) return;
+      if (candidatePath === existingPath) return;
+      throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+    },
+    copyFile: async (sourcePath) => {
+      copiedPaths.push(sourcePath);
+    },
+    unlink: async () => undefined,
+    makeDirectory: async () => undefined,
+  });
+  const service = createFileTreeService(createDependencies(fileSystem, projectRoot));
+
+  const result = await service.storeUploadedFiles(uploadInput(projectRoot, 'subdir', ['a.txt', 'b.txt'], [fileA, fileB]));
+
+  assert.equal(result.success, true);
+  assert.equal(result.uploadedCount, 1);
+  assert.deepEqual(result.conflicts, ['a.txt']);
+  assert.deepEqual(copiedPaths, ['/tmp/b']);
 });
 
 test('moveEntry refuses to overwrite a destination that is an ancestor of the source', async () => {

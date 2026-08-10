@@ -1084,6 +1084,7 @@ export type FileTreeServices = {
     uploadedCount: number;
     requestedFileCount: number;
     targetPath: string;
+    conflicts: string[]; // Names of files skipped because the destination already exists
     message: string;
   }>;
 };

@@ -36,6 +36,7 @@ type UploadResponse = {
   files?: unknown[];
   uploadedCount?: number;
   requestedFileCount?: number;
+  conflicts?: string[];
 };
 
 const COMPLETE_PROGRESS_CLEAR_DELAY_MS = 1400;
@@ -351,6 +352,15 @@ export const useFileTreeUpload = ({
         const requestedFileCount =
           typeof response.requestedFileCount === 'number' ? response.requestedFileCount : files.length;
 
+        const conflicts = Array.isArray(response.conflicts) ? response.conflicts : [];
+        const successMessage = formatUploadSuccessMessage(uploadedCount, requestedFileCount);
+        const successToast =
+          conflicts.length > 0
+            ? `${successMessage}. Skipped ${conflicts.length} conflicting ${pluralizeFiles(conflicts.length)}: ${conflicts
+                .slice(0, 3)
+                .join(', ')}${conflicts.length > 3 ? `, +${conflicts.length - 3} more` : ''}`
+            : successMessage;
+
         setUploadProgress({
           status: 'complete',
           progress: 100,
@@ -360,7 +370,7 @@ export const useFileTreeUpload = ({
           targetPath,
         });
 
-        showToast(formatUploadSuccessMessage(uploadedCount, requestedFileCount), 'success');
+        showToast(successToast, conflicts.length === requestedFileCount ? 'error' : 'success');
         scheduleProgressClear(COMPLETE_PROGRESS_CLEAR_DELAY_MS);
         onRefresh();
       } catch (err) {
@@ -412,12 +422,10 @@ export const useFileTreeUpload = ({
   }, []);
 
   const handleDrop = useCallback(
-    async (e: DragEvent) => {
+    async (e: DragEvent, targetPath = '') => {
       e.preventDefault();
       e.stopPropagation();
       setIsDragOver(false);
-
-      const targetPath = dropTarget || '';
 
       try {
         const files = await collectDroppedFiles(e.dataTransfer);
@@ -430,20 +438,17 @@ export const useFileTreeUpload = ({
         setDropTarget(null);
       }
     },
-    [dropTarget, setUploadError, showToast, uploadFiles],
+    [setUploadError, showToast, uploadFiles],
   );
 
-  const handleItemDragOver = useCallback((e: DragEvent, itemPath: string) => {
+  const handleItemDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setDropTarget(itemPath);
   }, []);
 
-  const handleItemDrop = useCallback((e: DragEvent, itemPath: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDropTarget(itemPath);
-  }, []);
+  const handleItemDrop = useCallback(async (e: DragEvent, itemPath: string) => {
+    await handleDrop(e, itemPath);
+  }, [handleDrop]);
 
   return {
     isDragOver,

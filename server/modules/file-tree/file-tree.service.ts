@@ -656,6 +656,7 @@ export function createFileTreeService(dependencies: FileTreeServiceDependencies)
         }
 
         const uploadedFiles: Array<{ name: string; path: string; size: number; mimeType: string }> = [];
+        const conflicts: string[] = [];
         for (let fileIndex = 0; fileIndex < input.files.length; fileIndex += 1) {
           const file = input.files[fileIndex];
           const fileName = input.relativePaths[fileIndex] || file.originalName;
@@ -678,6 +679,19 @@ export function createFileTreeService(dependencies: FileTreeServiceDependencies)
             await fileSystem.makeDirectory(parentDirectory, true);
           }
 
+          try {
+            await fileSystem.access(destinationPath);
+            await cleanupTemporaryFiles([file]);
+            conflicts.push(fileName);
+            continue;
+          } catch (error) {
+            if (readErrorCode(error) !== 'ENOENT') {
+              await cleanupTemporaryFiles([file]);
+              throw error;
+            }
+            // destination does not exist; safe to write
+          }
+
           await fileSystem.copyFile(file.temporaryPath, destinationPath);
           await fileSystem.unlink(file.temporaryPath);
           uploadedFiles.push({
@@ -688,13 +702,19 @@ export function createFileTreeService(dependencies: FileTreeServiceDependencies)
           });
         }
 
+        const pluralize = (count: number) => (count === 1 ? 'file' : 'files');
+
         return {
           success: true,
           files: uploadedFiles,
           uploadedCount: uploadedFiles.length,
           requestedFileCount: input.requestedFileCount,
+          conflicts,
           targetPath: resolvedTargetDirectory,
-          message: `Uploaded ${uploadedFiles.length} ${uploadedFiles.length === 1 ? 'file' : 'files'} successfully`,
+          message:
+            uploadedFiles.length === 0
+              ? `Skipped ${conflicts.length} ${pluralize(conflicts.length)} due to conflict`
+              : `Uploaded ${uploadedFiles.length} ${pluralize(uploadedFiles.length)} successfully`,
         };
       } catch (error) {
         await cleanupTemporaryFiles(input.files);

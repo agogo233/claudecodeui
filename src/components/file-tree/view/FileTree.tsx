@@ -122,11 +122,15 @@ export default function FileTree({ selectedProject, onFileOpen }: FileTreeProps)
     <div
       ref={upload.treeRef}
       className="relative flex h-full flex-col bg-background"
-      onDragEnter={upload.handleDragEnter}
+      onDragEnter={(e) => {
+        if (operations.dragItem) return;
+        upload.handleDragEnter(e);
+      }}
       onDragOver={(e) => {
         const hasTextPlain = Array.from(e.dataTransfer.types).includes('text/plain');
         if (hasTextPlain && operations.dragItem) {
-          operations.handleDragOver(e, '');
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
         } else {
           upload.handleDragOver(e);
         }

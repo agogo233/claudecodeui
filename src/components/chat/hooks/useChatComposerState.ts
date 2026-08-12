@@ -154,6 +154,7 @@ const createFakeSubmitEvent = () => {
 
 const MAX_ATTACHMENT_COUNT = 10;
 const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
+const MAX_INPUT_HISTORY = 50;
 
 const isImageAttachment = (attachment: ChatAttachment) => {
   if (attachment.mimeType?.startsWith('image/')) return true;
@@ -287,6 +288,8 @@ export function useChatComposerState({
     ) => Promise<void>) | null
   >(null);
   const inputValueRef = useRef(input);
+  const inputHistoryRef = useRef<string[]>([]);
+  const historyIndexRef = useRef(-1);
   const selectedProjectId = selectedProject?.projectId;
   // Prefer the stable backend-allocated id (selectedSession.id) but fall back
   // to currentSessionId for a just-established session that hasn't been
@@ -960,6 +963,17 @@ const handleSubmit = useCallback(
         },
       });
 
+      if (currentInput.trim()) {
+        const history = inputHistoryRef.current;
+        if (history[history.length - 1] !== currentInput) {
+          history.push(currentInput);
+          if (history.length > MAX_INPUT_HISTORY) {
+            history.splice(0, history.length - MAX_INPUT_HISTORY);
+          }
+        }
+      }
+      historyIndexRef.current = -1;
+
       setInput('');
       inputValueRef.current = '';
       resetCommandMenuState();
@@ -1089,6 +1103,9 @@ const handleSubmit = useCallback(
     if (!selectedProjectId) {
       return;
     }
+    if (historyIndexRef.current >= 0) {
+      return;
+    }
     if (input !== '') {
       safeLocalStorage.setItem(`draft_input_${selectedProjectId}`, input);
     } else {
@@ -1153,6 +1170,7 @@ const handleSubmit = useCallback(
 
   const handleInputChange = useCallback(
     (event: ChangeEvent<HTMLTextAreaElement>) => {
+      historyIndexRef.current = -1;
       const newValue = event.target.value;
       const cursorPos = event.target.selectionStart;
 
@@ -1179,6 +1197,63 @@ const handleSubmit = useCallback(
       }
 
       if (handleFileMentionsKeyDown(event)) {
+        return;
+      }
+
+      const hasModifiers = event.shiftKey || event.ctrlKey || event.metaKey || event.altKey;
+
+      if (event.key === 'ArrowUp') {
+        if (event.nativeEvent.isComposing || hasModifiers) {
+          return;
+        }
+        if (inputValueRef.current.trim() || inputHistoryRef.current.length === 0) {
+          return;
+        }
+        event.preventDefault();
+        const history = inputHistoryRef.current;
+        const nextIndex = historyIndexRef.current < 0 ? history.length - 1 : Math.max(0, historyIndexRef.current - 1);
+        historyIndexRef.current = nextIndex;
+        const value = history[nextIndex];
+        setInput(value);
+        inputValueRef.current = value;
+        requestAnimationFrame(() => {
+          const textarea = textareaRef.current;
+          if (!textarea) return;
+          textarea.setSelectionRange(value.length, value.length);
+          if (inputHighlightRef.current) {
+            inputHighlightRef.current.scrollTop = textarea.scrollTop;
+          }
+        });
+        return;
+      }
+
+      if (event.key === 'ArrowDown') {
+        if (event.nativeEvent.isComposing || hasModifiers) {
+          return;
+        }
+        if (inputHistoryRef.current.length === 0 || historyIndexRef.current < 0) {
+          return;
+        }
+        event.preventDefault();
+        const nextIndex = historyIndexRef.current + 1;
+        if (nextIndex >= inputHistoryRef.current.length) {
+          historyIndexRef.current = -1;
+          setInput('');
+          inputValueRef.current = '';
+        } else {
+          historyIndexRef.current = nextIndex;
+          const value = inputHistoryRef.current[nextIndex];
+          setInput(value);
+          inputValueRef.current = value;
+          requestAnimationFrame(() => {
+            const textarea = textareaRef.current;
+            if (!textarea) return;
+            textarea.setSelectionRange(value.length, value.length);
+            if (inputHighlightRef.current) {
+              inputHighlightRef.current.scrollTop = textarea.scrollTop;
+            }
+          });
+        }
         return;
       }
 
@@ -1231,6 +1306,7 @@ const handleSubmit = useCallback(
   );
 
   const handleClearInput = useCallback(() => {
+    historyIndexRef.current = -1;
     setInput('');
     inputValueRef.current = '';
     resetCommandMenuState();

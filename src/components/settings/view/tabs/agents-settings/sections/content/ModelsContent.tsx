@@ -8,7 +8,7 @@ import {
   OPENCODE_MODELS,
 } from '../../../../../../../../public/modelConstants';
 import { Button, Input } from '../../../../../../../shared/view/ui';
-import SessionProviderLogo from '../../../../../../llm-logo-provider/SessionProviderLogo';
+import LLMProviderLogo from '../../../../../../llm-provider-logo/LLMProviderLogo';
 import type { AgentProvider } from '../../../../../types/types';
 import {
   getCustomModels,
@@ -107,7 +107,7 @@ export default function ModelsContent({ agent }: ModelsContentProps) {
   return (
     <div className="space-y-6">
       <div className="mb-4 flex items-center gap-3">
-        <SessionProviderLogo provider={agent} className="h-6 w-6" />
+        <LLMProviderLogo provider={agent.id} className="h-6 w-6" />
         <div>
           <h3 className="text-lg font-medium text-foreground">Models</h3>
           <p className="text-sm text-muted-foreground">

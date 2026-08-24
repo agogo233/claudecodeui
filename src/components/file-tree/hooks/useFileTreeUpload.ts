@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 
-import { IS_PLATFORM } from '../../../constants/config';
+import { IS_PLATFORM } from '../../../shared/utils';
 import type { Project } from '../../../types/app';
 import {
   expireAuthSession,
@@ -406,9 +406,12 @@ export const useFileTreeUpload = ({
     setIsDragOver(true);
   }, []);
 
+  // Item rows stop propagation of their own dragover, so reaching this handler
+  // means the cursor is over empty space and the drop should target the root.
   const handleDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setDropTarget(null);
   }, []);
 
   const handleDragLeave = useCallback((e: DragEvent) => {
@@ -446,7 +449,7 @@ export const useFileTreeUpload = ({
     e.stopPropagation();
   }, []);
 
-  const handleItemDrop = useCallback(async (e: DragEvent, itemPath: string) => {
+const handleItemDrop = useCallback(async (e: DragEvent, itemPath: string) => {
     await handleDrop(e, itemPath);
   }, [handleDrop]);
 
@@ -456,13 +459,13 @@ export const useFileTreeUpload = ({
     operationLoading,
     uploadProgress,
     treeRef,
+    uploadFiles,
     handleFileSelect,
     handleDragEnter,
     handleDragOver,
     handleDragLeave,
     handleDrop,
     handleItemDragOver,
-    handleItemDrop,
     setDropTarget,
   };
 };

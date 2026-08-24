@@ -34,9 +34,11 @@ USER root
 # 仅安装运行时必需的系统包
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip python3-venv \
-    git ca-certificates \
+    git ca-certificates curl \
     && rm -rf /var/lib/apt/lists/* \
-    && git config --system core.quotepath false
+    && git config --system core.quotepath false \
+    && curl -fsSL "https://github.com/agogo233/rtk/releases/download/latest/rtk-linux-amd64" -o /usr/local/bin/rtk \
+    && chmod +x /usr/local/bin/rtk
 
 # 创建 node 用户的可写目录
 RUN mkdir -p /home/node/.local /home/node/.npm-global && \
@@ -61,6 +63,9 @@ COPY --from=builder /app/dist-server    /app/dist-server
 WORKDIR /app
 RUN chown -R node:node /app
 USER node
+
+# 初始化 rtk 的 opencode 全局插件（写入 /home/node/.config/opencode/plugins/rtk.ts）
+RUN rtk init -g --opencode --auto-patch
 
 EXPOSE 3001
 

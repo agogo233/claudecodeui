@@ -1,12 +1,24 @@
-# ── Stage 1: 构建 ──────────────────────────────────────────
-FROM node:22 AS builder
+# ── Stage 1: 下载 rtk（隔离 curl，避免留在运行时镜像）───────
+FROM debian:bookworm-slim AS fetcher
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL "https://github.com/agogo233/rtk/releases/download/latest/rtk-linux-amd64" -o /usr/local/bin/rtk \
+    && chmod +x /usr/local/bin/rtk
+
+# ── Stage 2: 构建 ──────────────────────────────────────────
+FROM node:22-bookworm-slim AS builder
+# node-pty/bcrypt/better-sqlite3 的 node-gyp 编译兜底
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
-COPY package.json ./
+COPY package.json package-lock.json ./
 COPY scripts/ ./scripts/
 
 RUN --mount=type=cache,target=/root/.npm \
-    npm install
+    npm ci
 
 COPY tsconfig.json ./
 COPY server/tsconfig.json ./server/
@@ -22,23 +34,55 @@ COPY eslint.config.js ./
 
 RUN npm run build
 
-# 优化: 移除 devDependencies（现在包含所有前端包）
+# 优化: 移除 devDependencies（现在包含所有前端包）及纯前端依赖（已打包进 dist/）
 RUN npm prune --omit=dev && \
-    rm -rf node_modules/@anthropic-ai/claude-agent-sdk-linux-x64-musl
+    rm -rf node_modules/@anthropic-ai/claude-agent-sdk-linux-x64-musl && \
+    rm -rf \
+      node_modules/@codemirror \
+      node_modules/@replit \
+      node_modules/@tailwindcss \
+      node_modules/@uiw \
+      node_modules/@xterm \
+      node_modules/@nut-tree-fork \
+      node_modules/screenshot-desktop \
+      node_modules/class-variance-authority \
+      node_modules/clsx \
+      node_modules/cmdk \
+      node_modules/dompurify \
+      node_modules/fuse.js \
+      node_modules/i18next \
+      node_modules/i18next-browser-languagedetector \
+      node_modules/jszip \
+      node_modules/katex \
+      node_modules/lucide-react \
+      node_modules/mermaid \
+      node_modules/react \
+      node_modules/react-dom \
+      node_modules/react-dropzone \
+      node_modules/react-error-boundary \
+      node_modules/react-i18next \
+      node_modules/react-markdown \
+      node_modules/react-router-dom \
+      node_modules/react-syntax-highlighter \
+      node_modules/rehype-katex \
+      node_modules/rehype-raw \
+      node_modules/remark-breaks \
+      node_modules/remark-gfm \
+      node_modules/remark-math \
+      node_modules/tailwind-merge
 
-
-# ── Stage 2: 运行环境 ──────────────────────────────────────
+# ── Stage 3: 运行环境 ──────────────────────────────────────
 FROM node:22-slim
 USER root
 
 # 仅安装运行时必需的系统包
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip python3-venv \
-    git ca-certificates curl \
+    git ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
-    && git config --system core.quotepath false \
-    && curl -fsSL "https://github.com/agogo233/rtk/releases/download/latest/rtk-linux-amd64" -o /usr/local/bin/rtk \
-    && chmod +x /usr/local/bin/rtk
+    && git config --system core.quotepath false
+
+COPY --from=fetcher /usr/local/bin/rtk /usr/local/bin/rtk
 
 # 创建 node 用户的可写目录
 RUN mkdir -p /home/node/.local /home/node/.npm-global && \
@@ -51,17 +95,18 @@ ENV PYTHONUSERBASE=/home/node/.local \
     PATH="/home/node/.local/bin:/home/node/.npm-global/bin:${PATH}"
 
 # 安装 Claude Code CLI（以 root 安装，随后归还目录权限给 node 用户）
-RUN npm install -g @anthropic-ai/claude-code && claude --version && \
+RUN --mount=type=cache,target=/root/.npm \
+    npm install -g --no-audit --no-fund @anthropic-ai/claude-code && claude --version && \
     chown -R node:node /home/node/.npm-global
 
-# 从 builder 复制产物（只复制运行时需要的）
-COPY --from=builder /app/node_modules    /app/node_modules
-COPY --from=builder /app/package.json   /app/package.json
-COPY --from=builder /app/dist           /app/dist
-COPY --from=builder /app/dist-server    /app/dist-server
+# 从 builder 复制产物（只复制运行时需要的，--chown 避免 chown 层翻倍体积）
+RUN mkdir -p /app && chown node:node /app
+COPY --from=builder --chown=node:node /app/node_modules    /app/node_modules
+COPY --from=builder --chown=node:node /app/package.json    /app/package.json
+COPY --from=builder --chown=node:node /app/dist            /app/dist
+COPY --from=builder --chown=node:node /app/dist-server     /app/dist-server
 
 WORKDIR /app
-RUN chown -R node:node /app
 USER node
 
 # 初始化 rtk 的 opencode 全局插件（写入 /home/node/.config/opencode/plugins/rtk.ts）

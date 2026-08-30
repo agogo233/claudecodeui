@@ -54,6 +54,24 @@ jobs:
           tags: |
             ghcr.io/${{ env.LOWER_NAME }}:latest
 
+      - name: 输出镜像体积
+        run: |
+          IMAGE="ghcr.io/${{ env.LOWER_NAME }}:latest"
+          docker buildx imagetools inspect "$IMAGE" --raw > "${{ runner.temp }}/manifest.json"
+          # 单架构：raw 直接是 image manifest，含 layers
+          if jq -e 'has("layers")' "${{ runner.temp }}/manifest.json" > /dev/null; then
+            echo "镜像压缩体积: $(jq '([.layers[].size] | add) / 1048576 | floor' "${{ runner.temp }}/manifest.json") MB"
+            exit 0
+          fi
+          # 多架构 index：按 digest 逐个取内层 manifest 计算层体积（跳过 attestation）
+          jq -r '.manifests[] | select(.platform.os != "unknown") | "\(.platform.os)/\(.platform.architecture) \(.digest)"' \
+            "${{ runner.temp }}/manifest.json" | \
+          while read -r os_arch digest; do
+            size=$(docker buildx imagetools inspect "$IMAGE@$digest" --raw \
+              | jq '([.layers[].size] | add) / 1048576 | floor')
+            echo "$os_arch: ${size} MB (压缩)"
+          done
+
       - uses: actions/delete-package-versions@v5
         with: 
           package-name: ${{ env.CONTAINER_NAME }}

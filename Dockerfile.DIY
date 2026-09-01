@@ -17,7 +17,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY scripts/ ./scripts/
 
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci
 
 COPY tsconfig.json ./
@@ -103,7 +103,7 @@ ENV PYTHONUSERBASE=/home/node/.local \
 
 # 安装 Claude Code CLI（以 root 安装，随后归还目录权限给 node 用户）
 # 清理全局安装中嵌套的多平台 SDK（仅保留 linux-x64，与 builder 阶段一致）
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm install -g --no-audit --no-fund @anthropic-ai/claude-code && claude --version && \
     find /home/node/.npm-global -type d \( -name "claude-agent-sdk-darwin-*" -o -name "claude-agent-sdk-linux-arm64*" -o -name "claude-agent-sdk-linux-x64-musl" -o -name "claude-agent-sdk-win32-*" \) -prune -exec rm -rf {} + 2>/dev/null || true && \
     npm cache clean --force || true && \
